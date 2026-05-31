@@ -91,11 +91,15 @@ export default function RoomsPage() {
   };
 
   const getStartEndDates = () => {
-    let start = new Date();
+
+    // let start = new Date();
+    const start = new Date();
+
+
     let end = new Date();
     if (!reservationForm.isOpentime && reservationForm.startTimeInput && reservationForm.endTimeInput) {
       const targetH = Number(reservationForm.startTimeInput);
-      let current12 = start.getHours() % 12 || 12;
+      const current12 = start.getHours() % 12 || 12;
       let diffCurrent = targetH - current12;
       if (diffCurrent < -6) diffCurrent += 12;
       if (diffCurrent > 6) diffCurrent -= 12;
@@ -355,8 +359,9 @@ export default function RoomsPage() {
                 <div className="text-6xl">✅</div>
                 <h3 className="text-2xl font-bold">تم إرسال طلب الحجز!</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  تم استلام طلبك وسيتم تأكيد الحجز فور مراجعة الدفع من قِبل الأدمن.<br />
-                  يُرجى الانتظار أو التواصل معنا.
+                  {"تم استلام طلبك وسيتم تأكيد الحجز فور مراجعة الدفع من قِبل الأدمن."}
+                  <br />
+                  {"يُرجى الانتظار أو التواصل معنا."}
                 </p>
                 <button onClick={closeModal} className="btn-primary w-full py-3">حسناً</button>
               </div>
