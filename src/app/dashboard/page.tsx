@@ -30,6 +30,17 @@ interface PendingReservation {
   room: { name: string; consoleType: string };
 }
 
+interface Activity {
+  id: string;
+  status: string;
+  startTime: string;
+  totalPrice: number;
+  room?: {
+    name: string;
+    consoleType: string;
+  };
+}
+
 const tabs = [
   { id: "add-room", label: "إضافة غرفة", icon: "🎮" },
   { id: "pending", label: "انتظار تأكيد", icon: "⏳" },
@@ -51,7 +62,7 @@ export default function Dashboard() {
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [pendingReservations, setPendingReservations] = useState<PendingReservation[]>([]);
 
   const fetchPending = async () => {
@@ -63,6 +74,7 @@ export default function Dashboard() {
       console.error("Failed to fetch pending:", e);
     }
   };
+
 
 
   const fetchRooms = async () => {
