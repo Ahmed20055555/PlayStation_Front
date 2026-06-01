@@ -59,6 +59,7 @@ export default function Dashboard() {
 
   const [newRoom, setNewRoom] = useState({ name: "", consoleType: "PS5", hourlyRate: 40, discountRate: "", discountStart: "", discountEnd: "" });
   const [addSuccess, setAddSuccess] = useState(false);
+  const [addError, setAddError] = useState("");
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
@@ -81,24 +82,26 @@ export default function Dashboard() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/rooms`);
       const data = await res.json();
-      setRooms(data);
+      setRooms(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch rooms:", error);
+      setRooms([]);
     }
   };
 
   const fetchOverview = () => {
     Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/revenue`).then(res => res.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations`).then(res => res.json())
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/revenue`).then(res => res.json()).catch(() => ({})),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations`).then(res => res.json()).catch(() => ([]))
     ])
       .then(([analyticsData, reservationsData]) => {
-        setData(analyticsData);
+        setData(analyticsData?.monthlyRevenue !== undefined ? analyticsData : { monthlyRevenue: 0, activeRooms: 0, totalCompleted: 0 });
         setRecentActivities(Array.isArray(reservationsData) ? reservationsData : []);
         setLoading(false);
       })
       .catch(error => {
         console.error("Failed to fetch dashboard data:", error);
+        setData({ monthlyRevenue: 0, activeRooms: 0, totalCompleted: 0 });
         setLoading(false);
       });
   };
@@ -118,6 +121,7 @@ export default function Dashboard() {
 
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAddError("");
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/rooms`, {
         method: "POST",
@@ -129,9 +133,13 @@ export default function Dashboard() {
         setNewRoom({ name: "", consoleType: "PS5", hourlyRate: 40, discountRate: "", discountStart: "", discountEnd: "" });
         fetchRooms();
         setTimeout(() => setAddSuccess(false), 3000);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setAddError(errorData.message || "حدث خطأ أثناء إضافة الغرفة. تحقق من اتصال قاعدة البيانات.");
       }
     } catch (error) {
       console.error("Failed to add room:", error);
+      setAddError("حدث خطأ في الاتصال بالخادم.");
     }
   };
 
@@ -214,6 +222,12 @@ export default function Dashboard() {
               <div className="glass-panel p-4 rounded-xl border border-green-500/30 bg-green-500/10 animate-in slide-in-from-top-4 flex items-center gap-3">
                 <span className="text-2xl">✅</span>
                 <p className="text-green-400 font-medium">تمت إضافة الغرفة بنجاح!</p>
+              </div>
+            )}
+            {addError && (
+              <div className="glass-panel p-4 rounded-xl border border-red-500/30 bg-red-500/10 animate-in slide-in-from-top-4 flex items-center gap-3">
+                <span className="text-2xl">❌</span>
+                <p className="text-red-400 font-medium">{addError}</p>
               </div>
             )}
             <div className="glass-panel p-8 rounded-xl border border-primary/20">
