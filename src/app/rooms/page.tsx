@@ -18,9 +18,6 @@ interface Room {
   reservations?: Reservation[];
 }
 
-// ← غيّر الأرقام دي لأرقامك الحقيقية
-const INSTAPAY_NUMBER = "01012345678";
-const VODAFONE_CASH_NUMBER = "01098765432";
 
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -32,6 +29,22 @@ export default function RoomsPage() {
   const [step, setStep] = useState<"form" | "payment" | "done">("form");
   const [totalPrice, setTotalPrice] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [instapayNumber, setInstapayNumber] = useState("01012345678");
+  const [vodafoneCashNumber, setVodafoneCashNumber] = useState("01098765432");
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.instapayNumber) setInstapayNumber(data.instapayNumber);
+        if (data.vodafoneCashNumber) setVodafoneCashNumber(data.vodafoneCashNumber);
+      }
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+    }
+  };
 
   const fetchRooms = async () => {
     try {
@@ -47,6 +60,7 @@ export default function RoomsPage() {
 
   useEffect(() => {
     fetchRooms();
+    fetchSettings();
     const timeTimer = setInterval(() => setNow(new Date()), 60_000);
     const roomsTimer = setInterval(fetchRooms, 3000);
     return () => {
@@ -75,7 +89,7 @@ export default function RoomsPage() {
 
   const openReservation = (room: Room) => {
     setReservingRoom(room);
-    setReservationForm({ customerName: "", customerPhone: "", transferToNumber: "", isOpentime: true, startTimeInput: "", endTimeInput: "" });
+    setReservationForm({ customerName: "", customerPhone: "", transferToNumber: "", transferImage: "", isOpentime: true, startTimeInput: "", endTimeInput: "" });
     setStep("form");
     setTotalPrice(0);
   };
@@ -340,27 +354,31 @@ export default function RoomsPage() {
                   <div className="flex flex-col gap-2">
                     <button
                       type="button"
-                      onClick={() => setReservationForm({ ...reservationForm, transferToNumber: `InstaPay: ${INSTAPAY_NUMBER}` })}
-                      className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all text-right w-full ${reservationForm.transferToNumber.includes('InstaPay') ? 'bg-purple-500/10 border-purple-500 ring-1 ring-purple-500/50' : 'bg-white/4 border-white/8 hover:bg-white/10'}`}
+                      onClick={() => setReservationForm({ ...reservationForm, transferToNumber: `InstaPay: ${instapayNumber}` })}
+                      className={`relative overflow-hidden group flex items-center justify-between p-4 rounded-xl border-2 transition-all ${reservationForm.transferToNumber.includes('InstaPay') ? 'bg-purple-500/10 border-purple-500 shadow-lg shadow-purple-500/20 ring-1 ring-purple-500/50' : 'bg-white/4 border-white/8 hover:bg-white/10'}`}
                     >
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${reservationForm.transferToNumber.includes('InstaPay') ? 'border-purple-500' : 'border-white/20'}`}>
                         {reservationForm.transferToNumber.includes('InstaPay') && <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />}
                       </div>
-                      <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center text-xl shrink-0">💜</div>
-                      <div className="flex-1"><p className="font-bold text-sm">InstaPay</p><p className="text-xs text-white/40">إنستا باي</p></div>
-                      <p className="font-mono font-bold text-white text-base">{INSTAPAY_NUMBER}</p>
+
+                      <div className="flex flex-col flex-1 mx-3 text-right">
+                        <span className="font-bold text-white group-hover:text-purple-400 transition-colors">إنستا باي (InstaPay)</span>
+                        <p className="font-mono font-bold text-white text-base">{instapayNumber}</p>
+                      </div>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setReservationForm({ ...reservationForm, transferToNumber: `Vodafone Cash: ${VODAFONE_CASH_NUMBER}` })}
-                      className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all text-right w-full ${reservationForm.transferToNumber.includes('Vodafone Cash') ? 'bg-red-500/10 border-red-500 ring-1 ring-red-500/50' : 'bg-white/4 border-white/8 hover:bg-white/10'}`}
+                      onClick={() => setReservationForm({ ...reservationForm, transferToNumber: `Vodafone Cash: ${vodafoneCashNumber}` })}
+                      className={`relative overflow-hidden group flex items-center justify-between p-4 rounded-xl border-2 transition-all ${reservationForm.transferToNumber.includes('Vodafone Cash') ? 'bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20 ring-1 ring-red-500/50' : 'bg-white/4 border-white/8 hover:bg-white/10'}`}
                     >
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${reservationForm.transferToNumber.includes('Vodafone Cash') ? 'border-red-500' : 'border-white/20'}`}>
                         {reservationForm.transferToNumber.includes('Vodafone Cash') && <div className="w-2.5 h-2.5 rounded-full bg-red-500" />}
                       </div>
-                      <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center text-xl shrink-0">🔴</div>
-                      <div className="flex-1"><p className="font-bold text-sm">Vodafone Cash</p><p className="text-xs text-white/40">فودافون كاش</p></div>
-                      <p className="font-mono font-bold text-red-400 text-base">{VODAFONE_CASH_NUMBER}</p>
+                      
+                      <div className="flex flex-col flex-1 mx-3 text-right">
+                        <span className="font-bold text-white group-hover:text-red-400 transition-colors">فودافون كاش (Vodafone Cash)</span>
+                        <p className="font-mono font-bold text-red-400 text-base">{vodafoneCashNumber}</p>
+                      </div>
                     </button>
                   </div>
                   <div className="rounded-xl bg-amber-500/8 border border-amber-500/20 p-3 text-center mb-2">

@@ -9,11 +9,25 @@ export const metadata: Metadata = {
   description: "نظام إدارة غرف وحجوزات البلايستيشن الخاص بك بسهولة واحترافية.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let playstationName = "Lounge Pro";
+  let logoImage = "";
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/settings`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.playstationName) playstationName = data.playstationName;
+      if (data.logoImage) logoImage = data.logoImage;
+    }
+  } catch (error) {
+    console.error("Error fetching settings for layout:", error);
+  }
+
   return (
     <html lang="ar" dir="rtl">
       <body className={cairo.className}>
@@ -22,15 +36,20 @@ export default function RootLayout({
           <header className="border-b border-white/5 sticky top-0 z-50 bg-background/80 backdrop-blur-md">
             <div className="container mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-foreground flex items-center justify-center">
-                  <span className="text-background font-bold text-[10px] sm:text-sm">PS</span>
-                </div>
+                {logoImage ? (
+                  <img src={logoImage} alt={playstationName} className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded" />
+                ) : (
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-foreground flex items-center justify-center">
+                    <span className="text-background font-bold text-[10px] sm:text-sm">PS</span>
+                  </div>
+                )}
                 <h1 className="text-base sm:text-lg font-bold tracking-tight hidden sm:block">
-                  <span className="text-foreground">Lounge</span> <span className="text-muted-foreground">Pro</span>
+                  <span className="text-foreground">{playstationName}</span>
                 </h1>
               </div>
               <nav className="flex items-center gap-2 sm:gap-4">
-                <a href="/rooms" className="text-[11px] sm:text-sm font-medium hover:text-foreground text-muted-foreground transition-colors">إدارة الغرف</a>
+                <a href="/dashboard" className="text-[11px] sm:text-sm font-medium hover:text-foreground text-muted-foreground transition-colors">لوحة التحكم</a>
+                <a href="/rooms" className="text-[11px] sm:text-sm font-medium hover:text-foreground text-muted-foreground transition-colors">الواجهة (الحجز)</a>
               </nav>
             </div>
           </header>

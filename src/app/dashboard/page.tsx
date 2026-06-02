@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SettingsPage from "../settings/page";
 
 interface AnalyticsData {
   monthlyRevenue: number;
@@ -46,6 +47,7 @@ const tabs = [
   { id: "add-room", label: "إضافة غرفة", icon: "🎮" },
   { id: "pending", label: "انتظار تأكيد", icon: "⏳" },
   { id: "overview", label: "نظرة عامة", icon: "📊" },
+  { id: "settings", label: "الإعدادات", icon: "⚙️" },
 ];
 
 const HOURS = Array.from({ length: 24 }, (_, i) => ({
@@ -622,6 +624,13 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* الإعدادات */}
+        {activeTab === "settings" && (
+          <div className="bg-black/20 rounded-2xl border border-white/5 p-4 sm:p-6 lg:p-8 backdrop-blur-sm">
+            <SettingsPage />
           </div>
         )}
       </div>
