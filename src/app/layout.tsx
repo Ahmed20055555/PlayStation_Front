@@ -31,7 +31,6 @@ export default function RootLayout({
               </div>
               <nav className="flex items-center gap-2 sm:gap-4">
                 <a href="/rooms" className="text-[11px] sm:text-sm font-medium hover:text-foreground text-muted-foreground transition-colors">إدارة الغرف</a>
-                <a href="#" className="text-[11px] sm:text-sm font-medium hover:text-foreground text-muted-foreground transition-colors hidden sm:block">التقارير</a>
               </nav>
             </div>
           </header>

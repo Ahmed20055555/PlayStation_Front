@@ -463,64 +463,76 @@ export default function RoomsPage() {
       )}
 
       {/* ===== قائمة الغرف ===== */}
-      <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 animate-in fade-in duration-700">
         {isLoading ? (
-        <div className="text-center text-muted-foreground py-12">جاري تحميل الغرف...</div>
-      ) : rooms.length === 0 ? (
-        <div className="text-center text-muted-foreground py-12 border border-dashed border-border rounded-xl">
-          لا توجد غرف حالياً.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {rooms.map(room => {
-            const isReserved = room.reservations && room.reservations.length > 0;
-            const { rate, isDiscounted } = getEffectiveRate(room);
+          <div className="text-center text-muted-foreground py-16">جاري تحميل الغرف...</div>
+        ) : rooms.length === 0 ? (
+          <div className="text-center text-muted-foreground py-12 border border-dashed border-border rounded-xl">
+            لا توجد غرف حالياً.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+            {rooms.map(room => {
+              const isReserved = room.reservations && room.reservations.length > 0;
+              const { rate, isDiscounted } = getEffectiveRate(room);
 
-            return (
-              <div
-                key={room.id}
-                className={`glass-panel p-6 rounded-xl transition-all group border-2 ${isReserved
-                  ? 'border-red-500/50 opacity-70 cursor-not-allowed'
-                  : 'border-green-500/30 hover:border-green-500/60 hover:scale-[1.02] cursor-pointer'
-                  }`}
-                onClick={() => !isReserved && openReservation(room)}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold">{room.name}</h3>
-                  <div className="flex flex-col gap-2 items-end">
-                    <span className={`px-2 py-1 text-xs font-bold rounded-md ${room.consoleType === 'PS5' ? 'bg-primary/20 text-primary' : 'bg-blue-500/20 text-blue-400'}`}>
-                      {room.consoleType === 'PS5' ? 'بلايستيشن 5' : 'بلايستيشن 4'}
+              return (
+                <div
+                  key={room.id}
+                  onClick={() => !isReserved && openReservation(room)}
+                  className={`relative flex flex-col rounded-2xl p-3 sm:p-4 transition-all duration-300 group overflow-hidden
+                    ${
+                      isReserved
+                        ? 'bg-[#0f0f0f] border border-red-500/30 cursor-not-allowed'
+                        : 'bg-[#0f0f0f] border border-white/5 cursor-pointer hover:border-green-500/40 hover:shadow-[0_0_20px_rgba(34,197,94,0.08)] hover:-translate-y-0.5'
+                    }`}
+                >
+                  {/* Glow Effect */}
+                  <div className={`absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none ${
+                    isReserved ? '' : 'group-hover:opacity-100'
+                  } bg-gradient-to-br from-green-500/5 to-transparent`} />
+
+                  {/* Status dot */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${
+                      room.consoleType === 'PS5' ? 'bg-white/8 text-white/70' : 'bg-blue-500/15 text-blue-400'
+                    }`}>
+                      {room.consoleType === 'PS5' ? 'PS5' : 'PS4'}
                     </span>
-                    <span className={`px-2 py-1 text-xs font-bold rounded-md ${isReserved ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-                      {isReserved ? '🔴 محجوزة' : '🟢 متاحة'}
-                    </span>
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${
+                      isReserved ? 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]' : 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]'
+                    }`} />
                   </div>
-                </div>
 
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-3xl font-extrabold text-white">{rate}</span>
-                  <span className="text-sm font-medium text-muted-foreground">جنيه / ساعة</span>
+                  {/* Room Name */}
+                  <h3 className="text-sm sm:text-base font-bold text-white leading-tight mb-2 truncate text-right">{room.name}</h3>
+
+                  {/* Price */}
+                  <div className="flex items-baseline gap-1 mb-1" dir="rtl">
+                    <span className="text-2xl sm:text-3xl font-black text-white leading-none">{rate}</span>
+                    <span className="text-[10px] sm:text-xs text-white/40 font-medium">جنيه/ساعة</span>
+                    {isDiscounted && (
+                      <span className="text-[10px] text-white/25 line-through">{room.hourlyRate}</span>
+                    )}
+                  </div>
+
                   {isDiscounted && (
-                    <span className="text-xs text-muted-foreground line-through">{room.hourlyRate}</span>
+                    <span className="text-[10px] text-green-400 font-medium">🏷️ خصم نشط</span>
                   )}
+
+                  {/* Status label */}
+                  <div className={`mt-3 pt-2.5 border-t text-center text-[10px] sm:text-xs font-semibold transition-colors duration-200 ${
+                    isReserved
+                      ? 'border-red-500/15 text-red-400'
+                      : 'border-white/5 text-white/30 group-hover:text-green-400'
+                  }`}>
+                    {isReserved ? 'محجوزة الآن' : 'اضغط للحجز ←'}
+                  </div>
                 </div>
-
-                {isDiscounted && (
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-                    🏷️ وقت الخصم نشط الآن
-                  </div>
-                )}
-
-                {!isReserved && (
-                  <div className="mt-4 text-center text-xs text-primary/70 font-medium group-hover:text-primary transition-colors">
-                    اضغط للحجز ←
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
       </div>
     </>
   );
