@@ -27,6 +27,7 @@ interface PendingReservation {
   startTime: string;
   endTime: string | null;
   totalPrice: number;
+  transferImage?: string;
   room: { name: string; consoleType: string };
 }
 
@@ -65,6 +66,7 @@ export default function Dashboard() {
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [pendingReservations, setPendingReservations] = useState<PendingReservation[]>([]);
+  const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
 
   const fetchPending = async () => {
     try {
@@ -419,6 +421,12 @@ export default function Dashboard() {
                             <p className="text-xs text-muted-foreground">المبلغ المطلوب</p>
                           </div>
                           <div className="flex gap-2">
+                            {res.transferImage && (
+                              <button
+                                onClick={() => setViewReceiptUrl(res.transferImage || null)}
+                                className="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 transition-colors text-sm font-bold"
+                              >🖼️ الإيصال</button>
+                            )}
                             <button
                               onClick={async () => {
                                 await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/${res.id}/confirm-payment`, { method: "PATCH" });
@@ -441,6 +449,20 @@ export default function Dashboard() {
                   })}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Modal صورة الإيصال */}
+        {viewReceiptUrl && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in" onClick={() => setViewReceiptUrl(null)}>
+            <div className="relative max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <button 
+                onClick={() => setViewReceiptUrl(null)}
+                className="absolute -top-12 right-0 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white text-xl transition-all"
+              >✕</button>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={viewReceiptUrl} alt="Receipt" className="object-contain max-h-[85vh] rounded-xl border border-white/20 shadow-2xl" />
             </div>
           </div>
         )}

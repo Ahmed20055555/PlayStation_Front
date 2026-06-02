@@ -25,7 +25,7 @@ const VODAFONE_CASH_NUMBER = "01098765432";
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservingRoom, setReservingRoom] = useState<Room | null>(null);
-  const [reservationForm, setReservationForm] = useState({ customerName: "", customerPhone: "", transferToNumber: "", isOpentime: true, startTimeInput: "", endTimeInput: "" });
+  const [reservationForm, setReservationForm] = useState({ customerName: "", customerPhone: "", transferToNumber: "", transferImage: "", isOpentime: true, startTimeInput: "", endTimeInput: "" });
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(new Date());
   // step: 'form' | 'payment' | 'done'
@@ -134,6 +134,17 @@ export default function RoomsPage() {
     setStep("form");
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReservationForm(prev => ({ ...prev, transferImage: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // الخطوة الأولى: حساب السعر والانتقال لصفحة الدفع
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +177,7 @@ export default function RoomsPage() {
           customerName: reservationForm.customerName,
           customerPhone: reservationForm.customerPhone,
           transferToNumber: reservationForm.transferToNumber,
+          transferImage: reservationForm.transferImage,
           isOpentime: reservationForm.isOpentime,
           startTime: start.toISOString(),
           endTime: end.toISOString(),
@@ -238,26 +250,6 @@ export default function RoomsPage() {
                     </div>
                   </div>
 
-                  {/* Transfer Select */}
-                  <div>
-                    <label className="block text-xs text-white/40 mb-1.5 font-medium">طريقة الدفع <span className="text-red-400">*</span></label>
-                    <div className="relative">
-                      <select
-                        required
-                        value={reservationForm.transferToNumber}
-                        onChange={e => setReservationForm({ ...reservationForm, transferToNumber: e.target.value })}
-                        className="w-full h-11 px-3 rounded-xl bg-white/5 border border-white/8 text-white text-sm text-right focus:outline-none focus:ring-1 focus:ring-white/25 transition-all appearance-none cursor-pointer"
-                        dir="rtl"
-                      >
-                        <option value="">-- اختر طريقة التحويل --</option>
-                        <option value={`InstaPay: ${INSTAPAY_NUMBER}`}>💜 إنستا باي — {INSTAPAY_NUMBER}</option>
-                        <option value={`Vodafone Cash: ${VODAFONE_CASH_NUMBER}`}>🔴 فودافون كاش — {VODAFONE_CASH_NUMBER}</option>
-                      </select>
-                      <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/30"><path d="m6 9 6 6 6-6"/></svg>
-                      </div>
-                    </div>
-                  </div>
 
                   {/* Booking Type Toggle */}
                   <div className="grid grid-cols-2 gap-2">
@@ -343,21 +335,52 @@ export default function RoomsPage() {
                     <p className="text-sm text-white/40">جنيه · {reservingRoom.name}</p>
                     {!reservationForm.isOpentime && <p className="text-xs text-white/25 mt-1 line-through">المبلغ الكامل: {totalPrice} جنيه</p>}
                   </div>
-                  <p className="text-xs text-white/40 text-center">حوّل المبلغ على أي رقم من الأرقام دي</p>
+                  <p className="text-sm font-bold text-white text-center">اختر الرقم اللي حولت عليه <span className="text-red-400">*</span></p>
+                  <p className="text-xs text-white/40 text-center mb-1">عشان نقدر نأكد حجزك بسرعة</p>
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3 p-3.5 rounded-xl border border-white/8 bg-white/4">
+                    <button
+                      type="button"
+                      onClick={() => setReservationForm({ ...reservationForm, transferToNumber: `InstaPay: ${INSTAPAY_NUMBER}` })}
+                      className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all text-right w-full ${reservationForm.transferToNumber.includes('InstaPay') ? 'bg-purple-500/10 border-purple-500 ring-1 ring-purple-500/50' : 'bg-white/4 border-white/8 hover:bg-white/10'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${reservationForm.transferToNumber.includes('InstaPay') ? 'border-purple-500' : 'border-white/20'}`}>
+                        {reservationForm.transferToNumber.includes('InstaPay') && <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />}
+                      </div>
                       <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center text-xl shrink-0">💜</div>
-                      <div className="flex-1"><p className="font-bold text-sm">InstaPay</p><p className="text-xs text-white/30">إنستا باي</p></div>
+                      <div className="flex-1"><p className="font-bold text-sm">InstaPay</p><p className="text-xs text-white/40">إنستا باي</p></div>
                       <p className="font-mono font-bold text-white text-base">{INSTAPAY_NUMBER}</p>
-                    </div>
-                    <div className="flex items-center gap-3 p-3.5 rounded-xl border border-white/8 bg-white/4">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReservationForm({ ...reservationForm, transferToNumber: `Vodafone Cash: ${VODAFONE_CASH_NUMBER}` })}
+                      className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all text-right w-full ${reservationForm.transferToNumber.includes('Vodafone Cash') ? 'bg-red-500/10 border-red-500 ring-1 ring-red-500/50' : 'bg-white/4 border-white/8 hover:bg-white/10'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${reservationForm.transferToNumber.includes('Vodafone Cash') ? 'border-red-500' : 'border-white/20'}`}>
+                        {reservationForm.transferToNumber.includes('Vodafone Cash') && <div className="w-2.5 h-2.5 rounded-full bg-red-500" />}
+                      </div>
                       <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center text-xl shrink-0">🔴</div>
-                      <div className="flex-1"><p className="font-bold text-sm">Vodafone Cash</p><p className="text-xs text-white/30">فودافون كاش</p></div>
+                      <div className="flex-1"><p className="font-bold text-sm">Vodafone Cash</p><p className="text-xs text-white/40">فودافون كاش</p></div>
                       <p className="font-mono font-bold text-red-400 text-base">{VODAFONE_CASH_NUMBER}</p>
-                    </div>
+                    </button>
                   </div>
-                  <div className="rounded-xl bg-amber-500/8 border border-amber-500/20 p-3 text-center">
+                  <div className="rounded-xl bg-amber-500/8 border border-amber-500/20 p-3 text-center mb-2">
                     <p className="text-xs text-amber-400/80">⚠️ حوّل <strong className="text-amber-300">{reservationForm.isOpentime ? `${totalPrice}` : `${Math.ceil(totalPrice/2)}`} جنيه</strong> كعربون والباقي عند الحضور</p>
+                  </div>
+                  
+                  {/* Upload Screenshot */}
+                  <div className="flex flex-col gap-2">
+                    <label className="block text-xs text-white/40 mb-1">إرفاق صورة التحويل (اختياري، يسرع التأكيد)</label>
+                    <label className="flex flex-col items-center justify-center w-full h-24 rounded-xl border-2 border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 transition-all cursor-pointer bg-white/3">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        {reservationForm.transferImage ? (
+                          <span className="text-2xl mb-1">✅</span>
+                        ) : (
+                          <svg className="w-6 h-6 mb-2 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        )}
+                        <p className="text-xs text-white/50">{reservationForm.transferImage ? "تم إرفاق الصورة بنجاح!" : "اضغط هنا لرفع الاسكرين شوت"}</p>
+                      </div>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                    </label>
                   </div>
                 </div>
               )}
