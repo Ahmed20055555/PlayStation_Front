@@ -19,17 +19,25 @@ export default function RootLayout({
       <body className={cairo.className}>
         <div className="min-h-screen flex flex-col">
           {/* Header */}
-          <header className="glass-panel border-b border-white/10 sticky top-0 z-50">
-            <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-              <h1 className="text-2xl font-bold neon-text tracking-wider">PS LOUNGE PRO</h1>
-              <nav className="flex space-x-6 space-x-reverse">
-                <a href="/rooms" className="text-sm font-medium hover:text-primary transition-colors">إدارة الغرف</a>
+          <header className="border-b border-white/5 sticky top-0 z-50 bg-background/80 backdrop-blur-md">
+            <div className="container mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-foreground flex items-center justify-center">
+                  <span className="text-background font-bold text-[10px] sm:text-sm">PS</span>
+                </div>
+                <h1 className="text-base sm:text-lg font-bold tracking-tight hidden sm:block">
+                  <span className="text-foreground">Lounge</span> <span className="text-muted-foreground">Pro</span>
+                </h1>
+              </div>
+              <nav className="flex items-center gap-2 sm:gap-4">
+                <a href="/rooms" className="text-[11px] sm:text-sm font-medium hover:text-foreground text-muted-foreground transition-colors">إدارة الغرف</a>
+                <a href="#" className="text-[11px] sm:text-sm font-medium hover:text-foreground text-muted-foreground transition-colors hidden sm:block">التقارير</a>
               </nav>
             </div>
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 container mx-auto px-4 py-8">
+          <main className="flex-1 w-full">
             {children}
           </main>
         </div>

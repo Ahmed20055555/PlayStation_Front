@@ -4,33 +4,33 @@
 
 @layer base {
   :root {
-    --background: 230 25% 8%; /* Very dark deep blue/black */
-    --foreground: 210 40% 98%; /* Off-white */
+    --background: 0 0% 4%; /* Almost black */
+    --foreground: 0 0% 98%; /* White */
     
-    --card: 230 25% 12%; /* Slightly lighter than bg */
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 6%; 
+    --card-foreground: 0 0% 98%;
     
-    --popover: 230 25% 10%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
     
-    --primary: 260 100% 65%; /* Vibrant Purple */
-    --primary-foreground: 210 40% 98%;
+    --primary: 0 0% 98%; /* White primary */
+    --primary-foreground: 0 0% 4%; /* Black text on primary */
     
-    --secondary: 190 100% 50%; /* Cyan accent */
-    --secondary-foreground: 230 25% 8%;
+    --secondary: 0 0% 12%; /* Dark gray */
+    --secondary-foreground: 0 0% 98%;
     
-    --muted: 230 20% 20%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
     
-    --accent: 330 100% 60%; /* Neon Pink */
-    --accent-foreground: 210 40% 98%;
+    --accent: 210 100% 50%; /* Clean blue accent */
+    --accent-foreground: 0 0% 98%;
     
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 230 20% 20%;
-    --input: 230 20% 18%;
-    --ring: 260 100% 65%;
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
+    --ring: 0 0% 98%;
     
     --radius: 0.75rem;
   }
@@ -41,29 +41,42 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Very subtle grid or plain background */
     background-image: 
-      radial-gradient(circle at 15% 50%, rgba(131, 58, 180, 0.05), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(253, 29, 29, 0.05), transparent 25%);
-    background-attachment: fixed;
+      linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    background-position: center center;
   }
 }
 
 @layer components {
   .glass-panel {
-    @apply bg-card/60 backdrop-blur-xl border border-white/10 shadow-2xl;
-  }
-  
-  .neon-text {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent;
+    @apply bg-card/50 backdrop-blur-md border border-white/5;
   }
   
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shadow-[0_0_15px_rgba(131,58,180,0.5)] hover:shadow-[0_0_25px_rgba(131,58,180,0.7)];
+    @apply inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-white/90 h-11 px-6 py-2 active:scale-95;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10 px-4 py-2 shadow-[0_0_15px_rgba(0,255,255,0.3)] hover:shadow-[0_0_25px_rgba(0,255,255,0.5)];
+    @apply inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-secondary border border-white/5 text-white hover:bg-secondary/80 h-11 px-6 py-2 active:scale-95;
   }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
