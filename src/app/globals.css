@@ -22,8 +22,9 @@
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 65%;
     
-    --accent: 210 100% 50%; /* Clean blue accent */
+    --accent: 174 90% 40%; /* Teal accent */
     --accent-foreground: 0 0% 98%;
+    transition: background-color 0.3s ease, color 0.3s ease;  
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
@@ -33,6 +34,27 @@
     --ring: 0 0% 98%;
     
     --radius: 0.75rem;
+  }
+  .dark {
+    --background: 0 0% 10%;
+    --foreground: 0 0% 90%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 90%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 90%;
+    --primary: 0 0% 90%;
+    --primary-foreground: 0 0% 10%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 174 90% 45%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 10%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 0% 90%;
   }
 }
 
@@ -65,6 +87,12 @@
     @apply inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-secondary border border-white/5 text-white hover:bg-secondary/80 h-11 px-6 py-2 active:scale-95;
   }
 }
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-left { animation: slide-in-left 0.3s ease-out forwards; }
 
 @keyframes fade-in-up {
   from {

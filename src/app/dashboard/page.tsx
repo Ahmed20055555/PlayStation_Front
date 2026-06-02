@@ -56,9 +56,48 @@ const HOURS = Array.from({ length: 24 }, (_, i) => ({
 }));
 
 export default function Dashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+
   const [activeTab, setActiveTab] = useState("add-room");
+  const [showMenu, setShowMenu] = useState(false);
+  const [showBottomNav, setShowBottomNav] = useState(true);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("dashboardAuthToken");
+    if (token) {
+      setIsAuthenticated(true);
+    }
+    setIsAuthChecking(false);
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailInput, password: passwordInput })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsAuthenticated(true);
+        sessionStorage.setItem("dashboardAuthToken", data.token);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setAuthError(errorData.message || "بيانات الدخول غير صحيحة");
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+      setAuthError("خطأ في الاتصال بالخادم");
+    }
+  };
 
   const [newRoom, setNewRoom] = useState({ name: "", consoleType: "PS5", hourlyRate: 40, discountRate: "", discountStart: "", discountEnd: "" });
   const [addSuccess, setAddSuccess] = useState(false);
@@ -180,6 +219,48 @@ export default function Dashboard() {
     }
   };
 
+  if (isAuthChecking) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] animate-in fade-in duration-500">
+        <div className="glass-panel p-8 rounded-xl border border-white/10 max-w-sm w-full text-center">
+          <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+            🔒
+          </div>
+          <h2 className="text-2xl font-bold mb-2">تسجيل الدخول</h2>
+          <p className="text-sm text-muted-foreground mb-6">أدخل البريد الإلكتروني وكلمة المرور للوصول إلى لوحة التحكم</p>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input
+              type="email"
+              placeholder="البريد الإلكتروني"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              className="w-full bg-input border border-border rounded-lg px-4 py-3 text-right focus:outline-none focus:ring-2 focus:ring-primary text-white"
+              autoFocus
+              required
+            />
+            <input
+              type="password"
+              placeholder="كلمة المرور"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              className="w-full bg-input border border-border rounded-lg px-4 py-3 text-right focus:outline-none focus:ring-2 focus:ring-primary text-white"
+              required
+            />
+            {authError && <p className="text-red-400 text-sm font-bold">{authError}</p>}
+            <button type="submit" className="w-full btn-primary py-3 text-lg font-bold">
+              تسجيل الدخول
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -189,35 +270,105 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex gap-6 animate-in fade-in duration-700 min-h-[calc(100vh-8rem)]">
+    <div className="flex flex-col md:flex-row min-h-screen w-full bg-background overflow-hidden" dir="rtl">
 
-      {/* ===== Sidebar ===== */}
-      <aside className="w-56 shrink-0">
-        <div className="glass-panel rounded-xl border border-white/10 overflow-hidden sticky top-24">
-          <div className="p-4 border-b border-white/10">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">القائمة</p>
+      {/* Mobile Top Bar */}
+      <div className="flex items-center justify-between md:hidden p-4 bg-card border-b border-border z-10 sticky top-0 shadow-sm">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setShowMenu(true)} className="p-2 rounded-md hover:bg-muted transition">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <h1 className="text-xl font-bold">لوحة التحكم</h1>
+        </div>
+      </div>
+
+      {/* Mobile Drawer Overlay & Menu */}
+      {showMenu && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden" onClick={() => setShowMenu(false)}>
+          <aside className="w-[250px] sm:w-64 h-full bg-card p-4 animate-in slide-in-from-right flex flex-col shadow-2xl overflow-y-auto" onClick={e => e.stopPropagation()} dir="rtl">
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-border">
+              <h2 className="text-xl font-bold">لوحة التحكم</h2>
+              <button onClick={() => setShowMenu(false)} className="p-2 hover:bg-muted rounded-full">✕</button>
+            </div>
+
+            <nav className="flex-1 space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4 px-2">القائمة</p>
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id); setShowMenu(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === tab.id
+                      ? 'bg-black text-white dark:bg-white dark:text-black shadow-md'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                >
+                  <span className="text-xl">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+
+            <div className="mt-8 pt-4 border-t border-border">
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem("dashboardAuthToken");
+                  setIsAuthenticated(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-300"
+              >
+                <span className="text-xl">🚪</span>
+                تسجيل الخروج
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop Sidebar (matches the user's image) */}
+      <aside className="hidden md:flex flex-col w-[280px] h-screen sticky top-0 bg-card border-l border-border p-6 shadow-sm z-10 shrink-0 overflow-y-auto" dir="rtl">
+        <div className="flex flex-col items-center mb-10 mt-4">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+            <span className="text-3xl">🎮</span>
           </div>
-          <nav className="p-2 space-y-1">
+          <h1 className="text-xl font-bold">لوحة التحكم</h1>
+          <p className="text-xs text-muted-foreground mt-1">إدارة بلايستيشن برو</p>
+        </div>
+
+        <nav className="flex-1 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4 px-2">الرئيسية</p>
+          <div className="bg-background rounded-2xl p-2 shadow-sm border border-border">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 text-right
-                  ${activeTab === tab.id
-                    ? "bg-primary/20 text-primary border border-primary/30"
-                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                className={`w-full flex items-center gap-3 px-4 py-3.5 mb-1 last:mb-0 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === tab.id
+                    ? 'bg-black text-white dark:bg-white dark:text-black shadow-md scale-[1.02]'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
               >
-                <span className="text-lg">{tab.icon}</span>
+                <span className="text-xl">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
-          </nav>
+          </div>
+        </nav>
+
+        <div className="mt-8">
+          <button
+            onClick={() => {
+              sessionStorage.removeItem("dashboardAuthToken");
+              setIsAuthenticated(false);
+            }}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 text-sm font-bold text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-300 group"
+          >
+            <span className="text-xl group-hover:-translate-x-1 transition-transform">🚪</span>
+            تسجيل الخروج
+          </button>
         </div>
       </aside>
 
       {/* ===== Main Content ===== */}
-      <div className="flex-1 animate-in fade-in duration-500">
+      <main className="flex-1 h-screen overflow-y-auto bg-background p-4 md:p-8 animate-in fade-in duration-500">
 
         {/* إضافة غرفة */}
         {activeTab === "add-room" && (
@@ -234,72 +385,72 @@ export default function Dashboard() {
                 <p className="text-red-400 font-medium">{addError}</p>
               </div>
             )}
-            <div className="glass-panel p-8 rounded-xl border border-primary/20">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-xl">🎮</div>
+            <div className="glass-panel p-4 md:p-8 rounded-xl border border-primary/20">
+              <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-md md:rounded-lg bg-primary/20 flex items-center justify-center text-base md:text-xl shrink-0">🎮</div>
                 <div>
-                  <h3 className="text-xl font-bold">إضافة غرفة جديدة</h3>
-                  <p className="text-sm text-muted-foreground">أدخل بيانات الغرفة وسيتم حفظها في النظام مباشرة.</p>
+                  <h3 className="text-base md:text-xl font-bold">إضافة غرفة جديدة</h3>
+                  <p className="text-[10px] md:text-sm text-muted-foreground">أدخل بيانات الغرفة وسيتم حفظها في النظام مباشرة.</p>
                 </div>
               </div>
               <form onSubmit={handleAddRoom} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-2">اسم الغرفة / الرقم</label>
+                    <label className="block text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">اسم الغرفة / الرقم</label>
                     <input
                       required
                       type="text"
                       value={newRoom.name}
                       onChange={e => setNewRoom({ ...newRoom, name: e.target.value })}
-                      className="w-full bg-input border border-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
+                      className="w-full bg-input border border-border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-base focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
                       placeholder="مثال: غرفة VIP 2"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-2">نوع الجهاز</label>
+                    <label className="block text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">نوع الجهاز</label>
                     <select
                       value={newRoom.consoleType}
                       onChange={e => setNewRoom({ ...newRoom, consoleType: e.target.value })}
-                      className="w-full bg-input border border-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
+                      className="w-full bg-input border border-border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-base focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
                     >
                       <option value="PS5">بلايستيشن 5</option>
                       <option value="PS4">بلايستيشن 4</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-2">سعر الساعة (جنيه)</label>
+                    <label className="block text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">سعر الساعة (جنيه)</label>
                     <input
                       required
                       type="number"
                       min="0"
                       value={newRoom.hourlyRate}
                       onChange={e => setNewRoom({ ...newRoom, hourlyRate: Number(e.target.value) })}
-                      className="w-full bg-input border border-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
+                      className="w-full bg-input border border-border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-base focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
                     />
                   </div>
                 </div>
 
                 {/* إعدادات الخصم (اختياري) */}
-                <div className="border-t border-white/10 pt-5 mt-2">
-                  <h4 className="text-sm font-bold text-muted-foreground mb-4">وقت الخصم (اختياري)</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="border-t border-white/10 pt-4 md:pt-5 mt-2">
+                  <h4 className="text-xs md:text-sm font-bold text-muted-foreground mb-3 md:mb-4">وقت الخصم (اختياري)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">السعر وقت الخصم (جنيه)</label>
+                      <label className="block text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">السعر وقت الخصم (جنيه)</label>
                       <input
                         type="number"
                         min="0"
                         value={newRoom.discountRate}
                         onChange={e => setNewRoom({ ...newRoom, discountRate: e.target.value })}
-                        className="w-full bg-input border border-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
+                        className="w-full bg-input border border-border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-base focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
                         placeholder="بدون خصم"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">من الساعة</label>
+                      <label className="block text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">من الساعة</label>
                       <select
                         value={newRoom.discountStart === "" ? "" : newRoom.discountStart}
                         onChange={e => setNewRoom({ ...newRoom, discountStart: e.target.value })}
-                        className="w-full bg-input border border-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
+                        className="w-full bg-input border border-border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-base focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
                       >
                         <option value="">-- اختر --</option>
                         {HOURS.map(h => (
@@ -308,11 +459,11 @@ export default function Dashboard() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">إلى الساعة</label>
+                      <label className="block text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">إلى الساعة</label>
                       <select
                         value={newRoom.discountEnd === "" ? "" : newRoom.discountEnd}
                         onChange={e => setNewRoom({ ...newRoom, discountEnd: e.target.value })}
-                        className="w-full bg-input border border-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
+                        className="w-full bg-input border border-border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-base focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
                       >
                         <option value="">-- اختر --</option>
                         {HOURS.map(h => (
@@ -322,7 +473,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-                <button type="submit" className="btn-primary px-8 py-3 text-base">
+                <button type="submit" className="btn-primary w-full md:w-auto px-6 md:px-8 py-2.5 md:py-3 text-sm md:text-base font-bold">
                   حفظ الغرفة
                 </button>
               </form>
@@ -330,10 +481,10 @@ export default function Dashboard() {
 
             {/* قائمة الغرف الحالية */}
             <div className="glass-panel p-6 rounded-xl border border-white/10">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-base">📋</div>
-                <h3 className="text-lg font-bold">الغرف الحالية</h3>
-                <span className="mr-auto text-xs text-muted-foreground bg-white/5 px-3 py-1 rounded-full">{rooms.length} غرفة</span>
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-5">
+                <div className="w-6 h-6 md:w-8 md:h-8 rounded-md md:rounded-lg bg-white/10 flex items-center justify-center text-sm md:text-base shrink-0">📋</div>
+                <h3 className="text-base md:text-lg font-bold">الغرف الحالية</h3>
+                <span className="mr-auto text-[10px] md:text-xs text-muted-foreground bg-white/5 px-2 md:px-3 py-0.5 md:py-1 rounded-full shrink-0">{rooms.length} غرفة</span>
               </div>
               {rooms.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8 border border-dashed border-border rounded-xl">
@@ -342,25 +493,25 @@ export default function Dashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {rooms.map(room => (
-                    <div key={room.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/40 transition-colors group">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold ${room.consoleType === 'PS5' ? 'bg-primary/20 text-primary' : 'bg-blue-500/20 text-blue-400'}`}>
+                    <div key={room.id} className="flex items-center justify-between p-3 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/40 transition-colors group">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-md md:rounded-lg flex items-center justify-center text-[10px] md:text-xs font-bold shrink-0 ${room.consoleType === 'PS5' ? 'bg-primary/20 text-primary' : 'bg-blue-500/20 text-blue-400'}`}>
                           {room.consoleType}
                         </div>
                         <div>
-                          <p className="font-semibold text-sm">{room.name}</p>
-                          <p className="text-xs text-muted-foreground">{room.hourlyRate} جنيه / ساعة</p>
+                          <p className="font-semibold text-xs md:text-sm">{room.name}</p>
+                          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-0">{room.hourlyRate} جنيه / ساعة</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1.5 md:gap-2">
                         <button
                           onClick={() => setEditingRoom(room)}
-                          className="p-1.5 rounded-lg bg-secondary/20 text-secondary hover:bg-secondary/40 transition-colors text-xs"
+                          className="p-1 md:p-1.5 rounded-lg bg-secondary/20 text-secondary hover:bg-secondary/40 transition-colors text-[10px] md:text-xs"
                           title="تعديل"
                         >✏️</button>
                         <button
                           onClick={() => deleteRoom(room.id)}
-                          className="p-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/40 transition-colors text-xs"
+                          className="p-1 md:p-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/40 transition-colors text-[10px] md:text-xs"
                           title="حذف"
                         >🗑️</button>
                       </div>
@@ -448,6 +599,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                     );
+
                   })}
                 </div>
               )}
@@ -459,7 +611,7 @@ export default function Dashboard() {
         {viewReceiptUrl && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in" onClick={() => setViewReceiptUrl(null)}>
             <div className="relative max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-              <button 
+              <button
                 onClick={() => setViewReceiptUrl(null)}
                 className="absolute -top-12 right-0 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white text-xl transition-all"
               >✕</button>
@@ -562,25 +714,25 @@ export default function Dashboard() {
         {activeTab === "overview" && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel p-6 rounded-xl relative overflow-hidden group">
+              <div className="glass-panel p-4 md:p-6 rounded-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
                 <h3 className="text-lg font-medium text-muted-foreground mb-2">الإيراد الشهري</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-extrabold text-white">{data?.monthlyRevenue.toLocaleString()} جنيه</span>
+                  <span className="text-2xl md:text-4xl font-extrabold text-white">{data?.monthlyRevenue.toLocaleString()} جنيه</span>
                   <span className="text-sm text-green-400 font-medium">+12.5%</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-4">مقارنة بالشهر الماضي</p>
               </div>
-              <div className="glass-panel p-6 rounded-xl relative overflow-hidden group">
+              <div className="glass-panel p-4 md:p-6 rounded-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
                 <h3 className="text-lg font-medium text-muted-foreground mb-2">الغرف النشطة حالياً</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-extrabold text-white">{data?.activeRooms}</span>
+                  <span className="text-2xl md:text-4xl font-extrabold text-white">{data?.activeRooms}</span>
                   <span className="text-sm text-muted-foreground font-medium">/ 10 إجمالي</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-4">يجري اللعب فيها الآن</p>
               </div>
-              <div className="glass-panel p-6 rounded-xl relative overflow-hidden group">
+              <div className="glass-panel p-4 md:p-6 rounded-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
                 <h3 className="text-lg font-medium text-muted-foreground mb-2">الجلسات المكتملة</h3>
                 <div className="flex items-baseline gap-2">
@@ -590,34 +742,36 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="glass-panel p-6 rounded-xl h-80 flex items-center justify-center border-primary/20">
-                <p className="text-muted-foreground">مخطط الإيرادات البياني (قريباً)</p>
-              </div>
-              <div className="glass-panel p-6 rounded-xl h-80 flex flex-col border-secondary/20">
-                <h3 className="text-xl font-bold mb-4 border-b border-white/10 pb-4">النشاطات الأخيرة</h3>
-                <div className="flex-1 overflow-auto space-y-3">
+            <div className="grid grid-cols-1 gap-6">
+              <div className="p-4 md:p-6 rounded-2xl flex flex-col bg-transparent">
+                <h3 className="text-lg md:text-xl font-bold mb-4 md:mb-6 pb-3 md:pb-4 border-b border-white/10 text-right">النشاطات الأخيرة</h3>
+                <div className="flex-1 overflow-y-auto space-y-3 md:space-y-4">
                   {recentActivities.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">لا توجد نشاطات حالياً</p>
+                    <p className="text-xs md:text-sm text-muted-foreground text-center py-4">لا توجد نشاطات حالياً</p>
                   ) : (
                     recentActivities.slice(0, 5).map((activity) => (
-                      <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
+                      <div key={activity.id} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl bg-[#111111] dark:bg-[#111111] border border-white/5 shadow-sm hover:bg-[#1a1a1a] transition-all gap-2">
+
+                        <div className="flex items-center gap-2 md:gap-4 text-right flex-1 min-w-0">
+                          <div className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/10 flex items-center justify-center text-white text-[10px] md:text-xs font-bold shrink-0">
                             {activity.room?.consoleType === 'PS5' ? 'PS5' : 'PS4'}
                           </div>
-                          <div>
-                            <p className="font-medium text-sm">
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <p className="font-bold text-xs md:text-sm text-white truncate">
                               {activity.status === 'completed' ? 'انتهت جلسة' : 'بدأت جلسة'} {activity.room?.name}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[10px] md:text-xs text-gray-400 mt-0.5 md:mt-1">
                               {new Date(activity.startTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
                         </div>
-                        {activity.totalPrice > 0 && (
-                          <span className="text-green-400 font-bold text-sm">+{activity.totalPrice} جنيه</span>
-                        )}
+
+                        <div className="shrink-0 mr-1">
+                          {activity.totalPrice > 0 && (
+                            <span className="text-[#22c55e] font-bold text-xs md:text-sm whitespace-nowrap">+{activity.totalPrice} ج</span>
+                          )}
+                        </div>
+
                       </div>
                     ))
                   )}
@@ -633,7 +787,7 @@ export default function Dashboard() {
             <SettingsPage />
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
