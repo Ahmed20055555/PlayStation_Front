@@ -184,280 +184,227 @@ export default function RoomsPage() {
     <>
       {/* ===== Modal ===== */}
       {reservingRoom && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in p-4">
-          <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-lg animate-in zoom-in-95 overflow-hidden">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in p-4">
+          <div className="bg-[#0d0d0d] border border-white/8 rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 flex flex-col max-h-[90svh]">
 
-            {/* ---- خطوة 1: الفورم ---- */}
-            {step === "form" && (
-              <div className="p-6 sm:p-8 bg-[#0a0a0a] flex flex-col gap-6 text-right" dir="rtl">
-                <h3 className="text-2xl font-bold text-white text-center mb-2 tracking-tight">حجز الغرفة</h3>
+            {/* ---- Header ---- */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/5 shrink-0">
+              <button onClick={closeModal} className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center text-white/60 hover:bg-white/15 hover:text-white transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+              <div className="text-center">
+                <p className="text-xs text-white/40 font-medium">{reservingRoom.name}</p>
+                <h3 className="text-base font-bold text-white">
+                  {step === "form" ? "حجز غرفة" : step === "payment" ? "تأكيد الدفع" : "تم الحجز! ✅"}
+                </h3>
+              </div>
+              {/* Step indicator */}
+              <div className="flex gap-1">
+                {["form","payment"].map((s,i) => (
+                  <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === s ? "w-5 bg-white" : step === "done" ? "w-3 bg-green-400" : i === 0 && step === "payment" ? "w-3 bg-white/40" : "w-3 bg-white/15"}`} />
+                ))}
+              </div>
+            </div>
 
-                <form onSubmit={handleProceedToPayment} className="flex flex-col gap-6">
-                  {/* Customer Info */}
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1 text-right">
-                      <label className="block text-sm text-muted-foreground mb-2 font-medium">اسم العميل (اختياري)</label>
+            {/* ---- Scrollable Body ---- */}
+            <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain" style={{WebkitOverflowScrolling:"touch"}}>
+
+              {/* ---- خطوة 1: الفورم ---- */}
+              {step === "form" && (
+                <div className="p-4 sm:p-5 flex flex-col gap-4 text-right" dir="rtl">
+
+                  {/* Customer Info - 2 cols */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-white/40 mb-1.5 font-medium">اسم العميل</label>
                       <input
                         type="text"
                         value={reservationForm.customerName}
                         onChange={e => setReservationForm({ ...reservationForm, customerName: e.target.value })}
-                        placeholder="اسم العميل"
-                        className="w-full h-12 px-4 rounded-xl bg-[#1c1c1c] border border-white/5 text-white text-right focus:outline-none focus:ring-2 focus:ring-white/20 transition-all placeholder:text-muted-foreground/50"
+                        placeholder="اختياري"
+                        className="w-full h-11 px-3 rounded-xl bg-white/5 border border-white/8 text-white text-sm text-right focus:outline-none focus:ring-1 focus:ring-white/25 transition-all placeholder:text-white/20"
                       />
                     </div>
-                    <div className="flex-1 text-right">
-                      <label className="block text-sm text-muted-foreground mb-2 font-medium">رقم تليفون العميل</label>
+                    <div>
+                      <label className="block text-xs text-white/40 mb-1.5 font-medium">رقم التليفون <span className="text-red-400">*</span></label>
                       <input
                         type="tel"
                         required
                         value={reservationForm.customerPhone}
                         onChange={e => setReservationForm({ ...reservationForm, customerPhone: e.target.value })}
-                        placeholder="رقم الموبايل"
-                        className="w-full h-12 px-4 rounded-xl bg-[#1c1c1c] border border-white/5 text-white text-right focus:outline-none focus:ring-2 focus:ring-white/20 transition-all placeholder:text-muted-foreground/50"
+                        placeholder="01xxxxxxxxx"
+                        className="w-full h-11 px-3 rounded-xl bg-white/5 border border-white/8 text-white text-sm text-right focus:outline-none focus:ring-1 focus:ring-white/25 transition-all placeholder:text-white/20"
                       />
                     </div>
                   </div>
 
-                  {/* Transfer To Number */}
-                  <div className="text-right">
-                    <label className="block text-sm text-muted-foreground mb-2 font-medium">الرقم اللي هيحول عليه الفلوس</label>
+                  {/* Transfer Select */}
+                  <div>
+                    <label className="block text-xs text-white/40 mb-1.5 font-medium">طريقة الدفع <span className="text-red-400">*</span></label>
                     <div className="relative">
                       <select
                         required
                         value={reservationForm.transferToNumber}
                         onChange={e => setReservationForm({ ...reservationForm, transferToNumber: e.target.value })}
-                        className="w-full h-12 px-4 rounded-xl bg-[#1c1c1c] border border-white/5 text-white text-right focus:outline-none focus:ring-2 focus:ring-white/20 transition-all appearance-none cursor-pointer"
+                        className="w-full h-11 px-3 rounded-xl bg-white/5 border border-white/8 text-white text-sm text-right focus:outline-none focus:ring-1 focus:ring-white/25 transition-all appearance-none cursor-pointer"
                         dir="rtl"
                       >
-                        <option value="">-- اختر الرقم --</option>
-                        <option value={`InstaPay: ${INSTAPAY_NUMBER}`}>إنستا باي - {INSTAPAY_NUMBER}</option>
-                        <option value={`Vodafone Cash: ${VODAFONE_CASH_NUMBER}`}>فودافون كاش - {VODAFONE_CASH_NUMBER}</option>
+                        <option value="">-- اختر طريقة التحويل --</option>
+                        <option value={`InstaPay: ${INSTAPAY_NUMBER}`}>💜 إنستا باي — {INSTAPAY_NUMBER}</option>
+                        <option value={`Vodafone Cash: ${VODAFONE_CASH_NUMBER}`}>🔴 فودافون كاش — {VODAFONE_CASH_NUMBER}</option>
                       </select>
-                      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><path d="m6 9 6 6 6-6" /></svg>
+                      <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/30"><path d="m6 9 6 6 6-6"/></svg>
                       </div>
                     </div>
                   </div>
 
-                  {/* Booking Type Selector */}
-                  <div className="p-4 rounded-xl border border-white/5 bg-[#121212] flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-10">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <span className={`text-sm sm:text-base font-semibold transition-colors ${reservationForm.isOpentime ? 'text-white' : 'text-muted-foreground group-hover:text-white/80'}`}>
-                        فترة مفتوحة (Open Time)
-                      </span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${reservationForm.isOpentime ? 'border-white' : 'border-muted-foreground group-hover:border-white/80'}`}>
-                        {reservationForm.isOpentime && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
-                      </div>
-                      <input
-                        type="radio"
-                        className="hidden"
-                        checked={reservationForm.isOpentime}
-                        onChange={() => setReservationForm({ ...reservationForm, isOpentime: true })}
-                      />
-                    </label>
-
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <span className={`text-sm sm:text-base font-semibold transition-colors ${!reservationForm.isOpentime ? 'text-white' : 'text-muted-foreground group-hover:text-white/80'}`}>
-                        تحديد وقت (من - إلى)
-                      </span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${!reservationForm.isOpentime ? 'border-white' : 'border-muted-foreground group-hover:border-white/80'}`}>
-                        {!reservationForm.isOpentime && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
-                      </div>
-                      <input
-                        type="radio"
-                        className="hidden"
-                        checked={!reservationForm.isOpentime}
-                        onChange={() => setReservationForm({ ...reservationForm, isOpentime: false })}
-                      />
-                    </label>
+                  {/* Booking Type Toggle */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setReservationForm({ ...reservationForm, isOpentime: true })}
+                      className={`h-12 rounded-xl text-sm font-semibold transition-all border ${reservationForm.isOpentime ? 'bg-white text-black border-white' : 'bg-white/5 text-white/50 border-white/8 hover:border-white/20'}`}>
+                      ⏳ مفتوح
+                    </button>
+                    <button type="button" onClick={() => setReservationForm({ ...reservationForm, isOpentime: false })}
+                      className={`h-12 rounded-xl text-sm font-semibold transition-all border ${!reservationForm.isOpentime ? 'bg-white text-black border-white' : 'bg-white/5 text-white/50 border-white/8 hover:border-white/20'}`}>
+                      🕐 وقت محدد
+                    </button>
                   </div>
 
-                  {/* Dynamic Time Inputs & Price Preview */}
-                  <div className="p-6 rounded-xl border border-white/5 bg-[#1c1c1c] flex flex-col items-center text-center">
+                  {/* Time Inputs + Price */}
+                  <div className="bg-white/3 rounded-2xl border border-white/6 p-4 flex flex-col gap-4">
                     {reservationForm.isOpentime ? (
-                      <div className="animate-fade-in-up w-full flex flex-col gap-5">
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          <div className="flex-1 text-right">
-                            <label className="block text-sm text-muted-foreground mb-2 font-medium">وقت الاستلام</label>
-                            <div className="w-full h-12 px-4 rounded-xl bg-[#1c1c1c] border border-white/5 flex items-center justify-between text-muted-foreground focus-within:ring-2 focus-within:ring-white/20 transition-all">
-                              <input
-                                type="time"
-                                className="bg-transparent text-white focus:outline-none w-full font-medium"
-                                value={reservationForm.startTimeInput}
-                                onChange={e => setReservationForm({ ...reservationForm, startTimeInput: e.target.value })}
-                              />
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ml-2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                            </div>
-                          </div>
-                          <div className="flex-1 text-right opacity-50 pointer-events-none">
-                            <label className="block text-sm text-muted-foreground mb-2 font-medium">وقت الانتهاء</label>
-                            <div className="w-full h-12 px-4 rounded-xl bg-[#121212] border border-white/5 flex items-center justify-between text-muted-foreground">
-                              <span className="w-full font-medium">--:-- --</span>
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ml-2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                            </div>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex-1">
+                          <label className="block text-xs text-white/40 mb-1.5 text-right">وقت الاستلام</label>
+                          <div className="h-11 px-3 rounded-xl bg-white/5 border border-white/8 flex items-center focus-within:ring-1 focus-within:ring-white/25 transition-all">
+                            <input type="time" className="bg-transparent text-white focus:outline-none w-full text-sm font-medium" value={reservationForm.startTimeInput} onChange={e => setReservationForm({ ...reservationForm, startTimeInput: e.target.value })} />
                           </div>
                         </div>
-
-                        <div className="mt-2 pt-5 border-t border-white/5 w-full">
-                          <p className="text-sm sm:text-base text-muted-foreground mb-3 font-medium">المبلغ المطلوب (عربون)</p>
-                          <h2 className="text-5xl sm:text-6xl font-black text-white mb-3 tracking-tight">
-                            {getEffectiveRate(reservingRoom).rate} <span className="text-2xl sm:text-3xl font-bold">جنيه</span>
-                          </h2>
-                          <p className="text-xs sm:text-sm text-muted-foreground font-medium">عربون تمن ساعة للفترة المفتوحة</p>
+                        <div className="flex-1 opacity-35 pointer-events-none">
+                          <label className="block text-xs text-white/40 mb-1.5 text-right">وقت الانتهاء</label>
+                          <div className="h-11 px-3 rounded-xl bg-white/3 border border-white/5 flex items-center text-sm text-white/30">--:--</div>
                         </div>
                       </div>
                     ) : (
-                      <div className="animate-fade-in-up w-full flex flex-col gap-5">
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          <div className="flex-1 text-right">
-                            <label className="block text-sm text-muted-foreground mb-2 font-medium">وقت الاستلام (من)</label>
-                            <div className="w-full h-12 px-4 rounded-xl bg-[#1c1c1c] border border-white/5 flex items-center justify-between text-muted-foreground focus-within:ring-2 focus-within:ring-white/20 transition-all">
-                              <input
-                                required={!reservationForm.isOpentime}
-                                type="time"
-                                className="bg-transparent text-white focus:outline-none w-full font-medium"
-                                value={reservationForm.startTimeInput}
-                                onChange={e => setReservationForm({ ...reservationForm, startTimeInput: e.target.value })}
-                              />
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ml-2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                            </div>
-                          </div>
-                          <div className="flex-1 text-right">
-                            <label className="block text-sm text-muted-foreground mb-2 font-medium">وقت الانتهاء (إلى)</label>
-                            <div className="w-full h-12 px-4 rounded-xl bg-[#1c1c1c] border border-white/5 flex items-center justify-between text-muted-foreground focus-within:ring-2 focus-within:ring-white/20 transition-all">
-                              <input
-                                required={!reservationForm.isOpentime}
-                                type="time"
-                                className="bg-transparent text-white focus:outline-none w-full font-medium"
-                                value={reservationForm.endTimeInput}
-                                onChange={e => setReservationForm({ ...reservationForm, endTimeInput: e.target.value })}
-                              />
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ml-2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                            </div>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex-1">
+                          <label className="block text-xs text-white/40 mb-1.5 text-right">من الساعة</label>
+                          <div className="h-11 px-3 rounded-xl bg-white/5 border border-white/8 flex items-center focus-within:ring-1 focus-within:ring-white/25 transition-all">
+                            <input required={!reservationForm.isOpentime} type="time" className="bg-transparent text-white focus:outline-none w-full text-sm font-medium" value={reservationForm.startTimeInput} onChange={e => setReservationForm({ ...reservationForm, startTimeInput: e.target.value })} />
                           </div>
                         </div>
-
-                        {(getCalculatedHours() > 0) && (
-                          <div className="mt-2 pt-5 border-t border-white/5 w-full">
-                            <p className="text-sm sm:text-base text-muted-foreground mb-3 font-medium">المبلغ المطلوب (عربون)</p>
-                            <h2 className="text-5xl sm:text-6xl font-black text-white mb-3 tracking-tight">
-                              {Math.ceil((getCalculatedHours() * getEffectiveRate(reservingRoom).rate) / 2)} <span className="text-2xl sm:text-3xl font-bold">جنيه</span>
-                            </h2>
-                            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-                              عربون نص مبلغ الـ {getCalculatedHours()} ساعات
-                              {getEffectiveRate(reservingRoom).isDiscounted && (
-                                <span className="text-green-400 mr-1"> 🏷️ (سعر خصم)</span>
-                              )}
-                            </p>
+                        <div className="flex-1">
+                          <label className="block text-xs text-white/40 mb-1.5 text-right">إلى الساعة</label>
+                          <div className="h-11 px-3 rounded-xl bg-white/5 border border-white/8 flex items-center focus-within:ring-1 focus-within:ring-white/25 transition-all">
+                            <input required={!reservationForm.isOpentime} type="time" className="bg-transparent text-white focus:outline-none w-full text-sm font-medium" value={reservationForm.endTimeInput} onChange={e => setReservationForm({ ...reservationForm, endTimeInput: e.target.value })} />
                           </div>
-                        )}
+                        </div>
                       </div>
                     )}
 
-                    {/* Shared Info Note with PS Controller SVG */}
-                    <div className="mt-5 pt-4 border-t border-white/5 flex items-start gap-3 text-right text-xs text-muted-foreground w-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white shrink-0 mt-0.5 animate-pulse">
-                        <path d="M6 12h4m-2-2v4" />
-                        <circle cx="15" cy="12" r="1.5" className="fill-white" />
-                        <circle cx="18" cy="10" r="1" className="fill-white" />
-                        <circle cx="18" cy="14" r="1" className="fill-white" />
-                        <path d="M21 9.5A3.5 3.5 0 0 0 17.5 6h-11A3.5 3.5 0 0 0 3 9.5v5A3.5 3.5 0 0 0 6.5 18h11a3.5 3.5 0 0 0 3.5-3.5v-5z" />
-                      </svg>
-                      <div className="flex-1 flex flex-col gap-1">
-                        <span className="font-semibold text-white">ملحوظة تهمك (توقيت الحجز):</span>
-                        <p>☀️ <strong className="text-white">AM</strong> تعني صباحاً (من 12:00 بعد منتصف الليل حتى 11:59 ظهراً)</p>
-                        <p>🌙 <strong className="text-white">PM</strong> تعني مساءً (من 12:00 ظهراً حتى 11:59 قبل منتصف الليل)</p>
+                    {/* Price Preview */}
+                    <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                      <div className="text-right">
+                        <p className="text-xs text-white/30 mb-0.5">عربون مطلوب</p>
+                        {!reservationForm.isOpentime && getCalculatedHours() > 0 && (
+                          <p className="text-xs text-white/25">{getCalculatedHours()} ساعة {getEffectiveRate(reservingRoom).isDiscounted && <span className="text-green-400">🏷️</span>}</p>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <span className="text-3xl font-black text-white">
+                          {reservationForm.isOpentime
+                            ? getEffectiveRate(reservingRoom).rate
+                            : getCalculatedHours() > 0 ? Math.ceil((getCalculatedHours() * getEffectiveRate(reservingRoom).rate) / 2) : "--"
+                          }
+                        </span>
+                        <span className="text-sm text-white/40 mr-1">جنيه</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                    <button type="submit" className="flex-[2] bg-white text-black hover:bg-gray-200 transition-colors rounded-xl h-12 sm:h-14 font-bold text-base flex items-center justify-center gap-2">
-                      <span>التالي: طريقة الدفع</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="rotate-180"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
-                    </button>
-                    <button type="button" onClick={closeModal} className="flex-1 bg-[#1c1c1c] border border-white/10 text-white hover:bg-[#2c2c2c] transition-colors rounded-xl h-12 sm:h-14 font-bold text-base flex items-center justify-center">
-                      إلغاء
-                    </button>
+                  {/* AM/PM Note - compact */}
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/3 border border-white/5 text-xs text-white/40" dir="rtl">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-white/50 shrink-0 animate-pulse">
+                      <path d="M6 12h4m-2-2v4"/><circle cx="15" cy="12" r="1.5" className="fill-white"/><circle cx="18" cy="10" r="1" className="fill-white"/><circle cx="18" cy="14" r="1" className="fill-white"/><path d="M21 9.5A3.5 3.5 0 0 0 17.5 6h-11A3.5 3.5 0 0 0 3 9.5v5A3.5 3.5 0 0 0 6.5 18h11a3.5 3.5 0 0 0 3.5-3.5v-5z"/>
+                    </svg>
+                    <span>☀️ <strong className="text-white/60">AM</strong> = الصبح &nbsp;·&nbsp; 🌙 <strong className="text-white/60">PM</strong> = الليل</span>
                   </div>
+
+                </div>
+              )}
+
+              {/* ---- خطوة 2: الدفع ---- */}
+              {step === "payment" && (
+                <div className="flex flex-col gap-4 p-4 sm:p-5" dir="rtl">
+                  <div className="rounded-2xl bg-gradient-to-br from-white/8 to-white/3 border border-white/10 p-5 text-center">
+                    <p className="text-xs text-white/40 mb-1">{reservationForm.isOpentime ? "عربون فترة مفتوحة" : `عربون ${getCalculatedHours()} ساعة`}</p>
+                    <p className="text-5xl font-black text-white mb-0.5">{reservationForm.isOpentime ? totalPrice : Math.ceil(totalPrice / 2)}</p>
+                    <p className="text-sm text-white/40">جنيه · {reservingRoom.name}</p>
+                    {!reservationForm.isOpentime && <p className="text-xs text-white/25 mt-1 line-through">المبلغ الكامل: {totalPrice} جنيه</p>}
+                  </div>
+                  <p className="text-xs text-white/40 text-center">حوّل المبلغ على أي رقم من الأرقام دي</p>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3 p-3.5 rounded-xl border border-white/8 bg-white/4">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center text-xl shrink-0">💜</div>
+                      <div className="flex-1"><p className="font-bold text-sm">InstaPay</p><p className="text-xs text-white/30">إنستا باي</p></div>
+                      <p className="font-mono font-bold text-white text-base">{INSTAPAY_NUMBER}</p>
+                    </div>
+                    <div className="flex items-center gap-3 p-3.5 rounded-xl border border-white/8 bg-white/4">
+                      <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center text-xl shrink-0">🔴</div>
+                      <div className="flex-1"><p className="font-bold text-sm">Vodafone Cash</p><p className="text-xs text-white/30">فودافون كاش</p></div>
+                      <p className="font-mono font-bold text-red-400 text-base">{VODAFONE_CASH_NUMBER}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-amber-500/8 border border-amber-500/20 p-3 text-center">
+                    <p className="text-xs text-amber-400/80">⚠️ حوّل <strong className="text-amber-300">{reservationForm.isOpentime ? `${totalPrice}` : `${Math.ceil(totalPrice/2)}`} جنيه</strong> كعربون والباقي عند الحضور</p>
+                  </div>
+                </div>
+              )}
+
+              {/* ---- خطوة 3: تم ---- */}
+              {step === "done" && (
+                <div className="p-8 text-center flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-green-500/15 flex items-center justify-center text-4xl">✅</div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">تم إرسال الطلب!</h3>
+                    <p className="text-sm text-white/40 leading-relaxed">سيتم تأكيد الحجز بعد مراجعة الدفع.<br/>يُرجى الانتظار أو التواصل معنا.</p>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* ---- Fixed Bottom Actions ---- */}
+            <div className="px-4 pb-5 pt-3 border-t border-white/5 shrink-0 bg-[#0d0d0d]">
+              {step === "form" && (
+                <form onSubmit={handleProceedToPayment} className="flex gap-2">
+                  <button type="submit" className="flex-1 h-12 rounded-xl bg-white text-black font-bold text-sm hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center gap-1.5">
+                    التالي
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="rotate-180"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                  </button>
+                  <button type="button" onClick={closeModal} className="w-24 h-12 rounded-xl bg-white/5 border border-white/8 text-white/60 font-semibold text-sm hover:bg-white/10 transition-all">
+                    إلغاء
+                  </button>
                 </form>
-              </div>
-            )}
-
-            {/* ---- خطوة 2: الدفع ---- */}
-            {step === "payment" && (
-              <div>
-                {/* رأس المبلغ */}
-                <div className="bg-gradient-to-r from-primary/20 to-secondary/20 p-6 text-center border-b border-white/10">
-                  <p className="text-sm text-muted-foreground mb-1">حوّل <span className="text-primary font-bold">{reservationForm.isOpentime ? 'تمن ساعة (عربون)' : 'نص المبلغ كعربون'}</span></p>
-                  <p className="text-5xl font-extrabold text-white">{reservationForm.isOpentime ? totalPrice : Math.ceil(totalPrice / 2)} <span className="text-xl font-medium text-muted-foreground">جنيه</span></p>
-                  {!reservationForm.isOpentime && (
-                    <p className="text-xs text-muted-foreground mt-2 line-through opacity-60">المبلغ الكامل: {totalPrice} جنيه</p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">{reservationForm.isOpentime ? 'فترة مفتوحة' : `${getCalculatedHours().toFixed(1)} ساعة`} في {reservingRoom.name}</p>
+              )}
+              {step === "payment" && (
+                <div className="flex gap-2">
+                  <button onClick={handleConfirmTransfer} disabled={isSubmitting} className="flex-1 h-12 rounded-xl bg-green-500 text-white font-bold text-sm hover:bg-green-400 disabled:opacity-50 active:scale-95 transition-all">
+                    {isSubmitting ? "جاري الإرسال..." : "✅ أكدت التحويل"}
+                  </button>
+                  <button onClick={() => setStep("form")} className="w-24 h-12 rounded-xl bg-white/5 border border-white/8 text-white/60 font-semibold text-sm hover:bg-white/10 transition-all">
+                    ← رجوع
+                  </button>
                 </div>
+              )}
+              {step === "done" && (
+                <button onClick={closeModal} className="w-full h-12 rounded-xl bg-white text-black font-bold text-sm hover:bg-gray-100 transition-all">
+                  حسناً، تم! 🎮
+                </button>
+              )}
+            </div>
 
-                <div className="p-6 space-y-4">
-                  <p className="text-center text-sm text-muted-foreground font-medium">اختر طريقة الدفع وحوّل المبلغ</p>
-
-                  {/* InstaPay */}
-                  <div className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
-                    <div className="w-12 h-12 rounded-xl bg-[#7B2FBE]/20 flex items-center justify-center text-2xl shrink-0">💜</div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm">InstaPay</p>
-                      <p className="text-xs text-muted-foreground">إنستا باي</p>
-                    </div>
-                    <div className="text-left">
-                      <p className="font-mono font-bold text-primary text-lg">{INSTAPAY_NUMBER}</p>
-                    </div>
-                  </div>
-
-                  {/* Vodafone Cash */}
-                  <div className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
-                    <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-2xl shrink-0">🔴</div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm">Vodafone Cash</p>
-                      <p className="text-xs text-muted-foreground">فودافون كاش</p>
-                    </div>
-                    <div className="text-left">
-                      <p className="font-mono font-bold text-red-400 text-lg">{VODAFONE_CASH_NUMBER}</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 text-center">
-                    <p className="text-xs text-yellow-400">⚠️ يكفي تحول <strong>{reservationForm.isOpentime ? `${totalPrice} جنيه` : `نص المبلغ (${Math.ceil(totalPrice / 2)} جنيه)`}</strong> كعربون، والباقي عند الحضور. بعد التحويل اضغط "أكدت التحويل"</p>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleConfirmTransfer}
-                      disabled={isSubmitting}
-                      className="btn-primary flex-1 py-3 disabled:opacity-50"
-                    >
-                      {isSubmitting ? "جاري الإرسال..." : "✅ أكدت التحويل"}
-                    </button>
-                    <button onClick={() => setStep("form")} className="btn-secondary px-4 py-3">
-                      ← رجوع
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ---- خطوة 3: تم الإرسال ---- */}
-            {step === "done" && (
-              <div className="p-8 text-center space-y-4">
-                <div className="text-6xl">✅</div>
-                <h3 className="text-2xl font-bold">تم إرسال طلب الحجز!</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {"تم استلام طلبك وسيتم تأكيد الحجز فور مراجعة الدفع من قِبل الأدمن."}
-                  <br />
-                  {"يُرجى الانتظار أو التواصل معنا."}
-                </p>
-                <button onClick={closeModal} className="btn-primary w-full py-3">حسناً</button>
-              </div>
-            )}
           </div>
         </div>
       )}
