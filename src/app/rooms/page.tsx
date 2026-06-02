@@ -331,10 +331,13 @@ export default function RoomsPage() {
 
                   {/* AM/PM Note - compact */}
                   <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/3 border border-white/5 text-xs text-white/40" dir="rtl">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-white/50 shrink-0 animate-pulse">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-white/50 shrink-0 animate-pulse mt-1 self-start">
                       <path d="M6 12h4m-2-2v4"/><circle cx="15" cy="12" r="1.5" className="fill-white"/><circle cx="18" cy="10" r="1" className="fill-white"/><circle cx="18" cy="14" r="1" className="fill-white"/><path d="M21 9.5A3.5 3.5 0 0 0 17.5 6h-11A3.5 3.5 0 0 0 3 9.5v5A3.5 3.5 0 0 0 6.5 18h11a3.5 3.5 0 0 0 3.5-3.5v-5z"/>
                     </svg>
-                    <span>☀️ <strong className="text-white/60">AM</strong> = الصبح &nbsp;·&nbsp; 🌙 <strong className="text-white/60">PM</strong> = الليل</span>
+                    <div className="flex flex-col gap-1">
+                      <span>☀️ <strong className="text-white/60 text-[13px]">AM</strong> (من 12 بالليل لحد 11:59 قبل الظهر)</span>
+                      <span>🌙 <strong className="text-white/60 text-[13px]">PM</strong> (من 12 الظهر لحد 11:59 قبل منتصف الليل)</span>
+                    </div>
                   </div>
 
                 </div>
