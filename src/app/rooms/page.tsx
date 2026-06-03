@@ -5,6 +5,9 @@ import { useState, useEffect } from "react";
 interface Reservation {
   id: number;
   status: string;
+  isOpentime?: boolean;
+  startTime?: string;
+  endTime?: string;
 }
 
 interface Room {
@@ -22,6 +25,7 @@ interface Room {
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservingRoom, setReservingRoom] = useState<Room | null>(null);
+  const [viewingRoom, setViewingRoom] = useState<Room | null>(null);
   const [reservationForm, setReservationForm] = useState({ customerName: "", customerPhone: "", transferToNumber: "", transferImage: "", isOpentime: true, startTimeInput: "", endTimeInput: "" });
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(new Date());
@@ -118,28 +122,34 @@ export default function RoomsPage() {
   const getStartEndDates = () => {
     const start = new Date();
     let end = new Date();
-    if (!reservationForm.isOpentime && reservationForm.startTimeInput && reservationForm.endTimeInput) {
-      if (reservationForm.startTimeInput.includes(":") && reservationForm.endTimeInput.includes(":")) {
+    
+    // دائما نحدد وقت البداية من المدخلات سواء كان مفتوح أو محدد
+    if (reservationForm.startTimeInput) {
+      if (reservationForm.startTimeInput.includes(":")) {
         const [startH, startM] = reservationForm.startTimeInput.split(":").map(Number);
         start.setHours(startH, startM, 0, 0);
 
-        const hours = getCalculatedHours();
-        end = new Date(start.getTime() + hours * 60 * 60 * 1000);
+        if (start.getTime() < new Date().getTime() - 2 * 60 * 60 * 1000) {
+          start.setDate(start.getDate() + 1);
+        }
       } else {
         const targetH = Number(reservationForm.startTimeInput);
         const current12 = start.getHours() % 12 || 12;
         let diffCurrent = targetH - current12;
         if (diffCurrent < -6) diffCurrent += 12;
         if (diffCurrent > 6) diffCurrent -= 12;
-
         start.setHours(start.getHours() + diffCurrent, 0, 0, 0);
-
-        const hours = getCalculatedHours();
-        end = new Date(start.getTime() + hours * 60 * 60 * 1000);
       }
+    }
+
+    // تحديد وقت النهاية
+    if (!reservationForm.isOpentime && reservationForm.endTimeInput) {
+      const hours = getCalculatedHours();
+      end = new Date(start.getTime() + hours * 60 * 60 * 1000);
     } else {
       end = new Date(start.getTime() + 60 * 60 * 1000);
     }
+    
     return { start, end };
   };
 
@@ -163,6 +173,38 @@ export default function RoomsPage() {
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reservingRoom) return;
+
+    const { start: newStart, end: newEnd } = getStartEndDates();
+
+    // التحقق من تعارض الأوقات
+    if (reservingRoom.reservations && reservingRoom.reservations.length > 0) {
+      for (const res of reservingRoom.reservations) {
+        if (!res.startTime) continue;
+        const resStart = new Date(res.startTime);
+        // للوقت المفتوح، نفترض أنه يأخذ 12 ساعة على الأقل كحجز
+        const resEnd = res.endTime ? new Date(res.endTime) : new Date(resStart.getTime() + 12 * 60 * 60 * 1000);
+        
+        // لو الحجز الجديد مفتوح، نفترض أنه هياخد 12 ساعة علشان نتأكد إنه مش هيتعارض مع أي حجز قادم
+        const checkNewEnd = reservationForm.isOpentime ? new Date(newStart.getTime() + 12 * 60 * 60 * 1000) : newEnd;
+
+        if (newStart < resEnd && checkNewEnd > resStart) {
+          if (reservationForm.isOpentime) {
+            const formatTime = (d: Date) => {
+              let h = d.getHours();
+              const m = d.getMinutes();
+              const ampm = h >= 12 ? 'م' : 'ص';
+              h = h % 12 || 12;
+              return `${h}:${m < 10 ? '0' + m : m} ${ampm}`;
+            };
+            alert(`❌ لا يمكن اختيار "وقت مفتوح" لأن هناك حجز قادم لهذه الغرفة يبدأ الساعة ${formatTime(resStart)}. يرجى إزالة علامة الصح من الوقت المفتوح وتحديد وقت انتهاء قبل هذا الموعد.`);
+          } else {
+            alert("❌ هذا الوقت يتعارض مع حجز آخر مسجل في هذه الغرفة! يرجى اختيار وقت آخر.");
+          }
+          return;
+        }
+      }
+    }
+
     const rate = getEffectiveRate(reservingRoom).rate;
     if (reservationForm.isOpentime) {
       setTotalPrice(rate); // 1 hour deposit
@@ -183,7 +225,7 @@ export default function RoomsPage() {
     setIsSubmitting(true);
     const { start, end } = getStartEndDates();
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -197,10 +239,20 @@ export default function RoomsPage() {
           endTime: end.toISOString(),
         }),
       });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.message || "حدث خطأ أثناء تسجيل الحجز. ربما يكون الوقت محجوزاً بالفعل.");
+        setStep("form");
+        return;
+      }
+
       setStep("done");
       fetchRooms();
     } catch (error) {
       console.error("Failed to reserve room:", error);
+      alert("تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى.");
+      setStep("form");
     } finally {
       setIsSubmitting(false);
     }
@@ -208,6 +260,67 @@ export default function RoomsPage() {
 
   return (
     <>
+      {/* ===== Viewing Room Modal ===== */}
+      {viewingRoom && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in p-4">
+          <div className="bg-[#0d0d0d] border border-white/8 rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90svh]">
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/5 shrink-0" dir="rtl">
+              <h3 className="text-sm sm:text-base font-bold text-white truncate pl-2">
+                تفاصيل الغرفة: {viewingRoom.name}
+              </h3>
+              <button onClick={() => setViewingRoom(null)} className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center text-white/60 hover:bg-white/15 hover:text-white transition-all shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-4 sm:p-5" dir="rtl">
+              <h4 className="text-sm text-white/50 mb-3 font-semibold">كل مواعيد الحجوزات للغرفة</h4>
+              {viewingRoom.reservations && viewingRoom.reservations.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {viewingRoom.reservations.map(res => {
+                    const formatTime = (dStr: string) => {
+                      const d = new Date(dStr);
+                      let h = d.getHours();
+                      const m = d.getMinutes();
+                      const ampm = h >= 12 ? 'م' : 'ص';
+                      h = h % 12 || 12;
+                      return `${h}:${m < 10 ? '0' + m : m} ${ampm}`;
+                    };
+                    return (
+                      <div key={res.id} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-1">
+                        <div className="flex justify-between items-center">
+                          {res.isOpentime ? (
+                            <span className="text-sm text-white font-bold text-red-400">
+                              ⏳ وقت مفتوح <span className="text-white/60 font-normal text-xs">(يبدأ <span className="text-red-300">{res.startTime && formatTime(res.startTime)}</span>)</span>
+                            </span>
+                          ) : (
+                            <span className="text-sm text-white font-bold">
+                              من <span className="text-red-300">{res.startTime && formatTime(res.startTime)}</span> إلى <span className="text-red-300">{res.endTime && formatTime(res.endTime)}</span>
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-white/40">حالة الحجز: {res.status === 'pending_payment' ? 'بانتظار الدفع' : 'مؤكد'}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-white/5 rounded-xl border border-dashed border-white/10">
+                  <p className="text-sm text-white/40">لا توجد حجوزات مسجلة</p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 pb-5 pt-3 border-t border-white/5 shrink-0 bg-[#0d0d0d]">
+              <button onClick={() => { setViewingRoom(null); openReservation(viewingRoom); }} className="w-full h-12 rounded-xl bg-green-500 text-white font-bold text-sm hover:bg-green-400 active:scale-95 transition-all flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
+                إضافة حجز جديد
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== Modal ===== */}
       {reservingRoom && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in p-4">
@@ -216,7 +329,7 @@ export default function RoomsPage() {
             {/* ---- Header ---- */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/5 shrink-0">
               <button onClick={closeModal} className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center text-white/60 hover:bg-white/15 hover:text-white transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
               </button>
               <div className="text-center">
                 <p className="text-xs text-white/40 font-medium">{reservingRoom.name}</p>
@@ -226,14 +339,14 @@ export default function RoomsPage() {
               </div>
               {/* Step indicator */}
               <div className="flex gap-1">
-                {["form","payment"].map((s,i) => (
+                {["form", "payment"].map((s, i) => (
                   <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${step === s ? "w-5 bg-white" : step === "done" ? "w-3 bg-green-400" : i === 0 && step === "payment" ? "w-3 bg-white/40" : "w-3 bg-white/15"}`} />
                 ))}
               </div>
             </div>
 
             {/* ---- Scrollable Body ---- */}
-            <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain" style={{WebkitOverflowScrolling:"touch"}}>
+            <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
 
               {/* ---- خطوة 1: الفورم ---- */}
               {step === "form" && (
@@ -332,7 +445,7 @@ export default function RoomsPage() {
                   {/* AM/PM Note - compact */}
                   <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/3 border border-white/5 text-xs text-white/40" dir="rtl">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-white/50 shrink-0 animate-pulse mt-1 self-start">
-                      <path d="M6 12h4m-2-2v4"/><circle cx="15" cy="12" r="1.5" className="fill-white"/><circle cx="18" cy="10" r="1" className="fill-white"/><circle cx="18" cy="14" r="1" className="fill-white"/><path d="M21 9.5A3.5 3.5 0 0 0 17.5 6h-11A3.5 3.5 0 0 0 3 9.5v5A3.5 3.5 0 0 0 6.5 18h11a3.5 3.5 0 0 0 3.5-3.5v-5z"/>
+                      <path d="M6 12h4m-2-2v4" /><circle cx="15" cy="12" r="1.5" className="fill-white" /><circle cx="18" cy="10" r="1" className="fill-white" /><circle cx="18" cy="14" r="1" className="fill-white" /><path d="M21 9.5A3.5 3.5 0 0 0 17.5 6h-11A3.5 3.5 0 0 0 3 9.5v5A3.5 3.5 0 0 0 6.5 18h11a3.5 3.5 0 0 0 3.5-3.5v-5z" />
                     </svg>
                     <div className="flex flex-col gap-1">
                       <span>☀️ <strong className="text-white/60 text-[13px]">AM</strong> (من 12 بالليل لحد 11:59 قبل الظهر)</span>
@@ -377,7 +490,7 @@ export default function RoomsPage() {
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${reservationForm.transferToNumber.includes('Vodafone Cash') ? 'border-red-500' : 'border-white/20'}`}>
                         {reservationForm.transferToNumber.includes('Vodafone Cash') && <div className="w-2.5 h-2.5 rounded-full bg-red-500" />}
                       </div>
-                      
+
                       <div className="flex flex-col flex-1 mx-3 text-right">
                         <span className="font-bold text-white group-hover:text-red-400 transition-colors">فودافون كاش (Vodafone Cash)</span>
                         <p className="font-mono font-bold text-red-400 text-base">{vodafoneCashNumber}</p>
@@ -385,9 +498,9 @@ export default function RoomsPage() {
                     </button>
                   </div>
                   <div className="rounded-xl bg-amber-500/8 border border-amber-500/20 p-3 text-center mb-2">
-                    <p className="text-xs text-amber-400/80">⚠️ حوّل <strong className="text-amber-300">{reservationForm.isOpentime ? `${totalPrice}` : `${Math.ceil(totalPrice/2)}`} جنيه</strong> كعربون والباقي عند الحضور</p>
+                    <p className="text-xs text-amber-400/80">⚠️ حوّل <strong className="text-amber-300">{reservationForm.isOpentime ? `${totalPrice}` : `${Math.ceil(totalPrice / 2)}`} جنيه</strong> كعربون والباقي عند الحضور</p>
                   </div>
-                  
+
                   {/* Upload Screenshot */}
                   <div className="flex flex-col gap-2">
                     <label className="block text-xs text-white/40 mb-1">إرفاق صورة التحويل (اختياري، يسرع التأكيد)</label>
@@ -412,7 +525,7 @@ export default function RoomsPage() {
                   <div className="w-16 h-16 rounded-full bg-green-500/15 flex items-center justify-center text-4xl">✅</div>
                   <div>
                     <h3 className="text-xl font-bold mb-2">تم إرسال الطلب!</h3>
-                    <p className="text-sm text-white/40 leading-relaxed">سيتم تأكيد الحجز بعد مراجعة الدفع.<br/>يُرجى الانتظار أو التواصل معنا.</p>
+                    <p className="text-sm text-white/40 leading-relaxed">سيتم تأكيد الحجز بعد مراجعة الدفع.<br />يُرجى الانتظار أو التواصل معنا.</p>
                   </div>
                 </div>
               )}
@@ -425,7 +538,7 @@ export default function RoomsPage() {
                 <form onSubmit={handleProceedToPayment} className="flex gap-2">
                   <button type="submit" className="flex-1 h-12 rounded-xl bg-white text-black font-bold text-sm hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center gap-1.5">
                     التالي
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="rotate-180"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="rotate-180"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
                   </button>
                   <button type="button" onClick={closeModal} className="w-24 h-12 rounded-xl bg-white/5 border border-white/8 text-white/60 font-semibold text-sm hover:bg-white/10 transition-all">
                     إلغاء
@@ -470,29 +583,31 @@ export default function RoomsPage() {
               return (
                 <div
                   key={room.id}
-                  onClick={() => !isReserved && openReservation(room)}
+                  onClick={() => {
+                    if (room.reservations && room.reservations.length > 0) {
+                      setViewingRoom(room);
+                    } else {
+                      openReservation(room);
+                    }
+                  }}
                   className={`relative flex flex-col rounded-2xl p-3 sm:p-4 transition-all duration-300 group overflow-hidden
-                    ${
-                      isReserved
-                        ? 'bg-[#0f0f0f] border border-red-500/30 cursor-not-allowed'
-                        : 'bg-[#0f0f0f] border border-white/5 cursor-pointer hover:border-green-500/40 hover:shadow-[0_0_20px_rgba(34,197,94,0.08)] hover:-translate-y-0.5'
+                    ${isReserved
+                      ? 'bg-[#0f0f0f] border border-red-500/30 cursor-pointer hover:border-red-400/50 hover:-translate-y-0.5'
+                      : 'bg-[#0f0f0f] border border-white/5 cursor-pointer hover:border-green-500/40 hover:shadow-[0_0_20px_rgba(34,197,94,0.08)] hover:-translate-y-0.5'
                     }`}
                 >
                   {/* Glow Effect */}
-                  <div className={`absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none ${
-                    isReserved ? '' : 'group-hover:opacity-100'
-                  } bg-gradient-to-br from-green-500/5 to-transparent`} />
+                  <div className={`absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100 ${isReserved ? 'bg-gradient-to-br from-red-500/5 to-transparent' : 'bg-gradient-to-br from-green-500/5 to-transparent'
+                    }`} />
 
                   {/* Status dot */}
                   <div className="flex items-center justify-between mb-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${
-                      room.consoleType === 'PS5' ? 'bg-white/8 text-white/70' : 'bg-blue-500/15 text-blue-400'
-                    }`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${room.consoleType === 'PS5' ? 'bg-white/8 text-white/70' : 'bg-blue-500/15 text-blue-400'
+                      }`}>
                       {room.consoleType === 'PS5' ? 'PS5' : 'PS4'}
                     </span>
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${
-                      isReserved ? 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]' : 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]'
-                    }`} />
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${isReserved ? 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]' : 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]'
+                      }`} />
                   </div>
 
                   {/* Room Name */}
@@ -512,12 +627,23 @@ export default function RoomsPage() {
                   )}
 
                   {/* Status label */}
-                  <div className={`mt-3 pt-2.5 border-t text-center text-[10px] sm:text-xs font-semibold transition-colors duration-200 ${
-                    isReserved
-                      ? 'border-red-500/15 text-red-400'
-                      : 'border-white/5 text-white/30 group-hover:text-green-400'
-                  }`}>
-                    {isReserved ? 'محجوزة الآن' : 'اضغط للحجز ←'}
+                  <div className={`mt-3 pt-2.5 border-t text-center text-[10px] sm:text-xs font-semibold transition-colors duration-200 flex flex-col gap-1 ${isReserved
+                    ? 'border-red-500/15 text-red-400 group-hover:text-red-300'
+                    : 'border-white/5 text-white/30 group-hover:text-green-400'
+                    }`}>
+                    {!isReserved && (
+                      <span className="text-green-400 font-bold text-sm inline-flex items-center justify-center gap-1 mt-1">
+                        احجز الآن
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="rotate-180"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                      </span>
+                    )}
+                    {/* زر عرض الحجوزات */}
+                    {isReserved && (
+                      <div className="mt-2 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-all w-full text-center whitespace-nowrap text-[10px] sm:text-xs">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                        <span>عرض الحجوزات </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
