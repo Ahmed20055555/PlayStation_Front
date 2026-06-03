@@ -528,20 +528,24 @@ export default function Dashboard() {
         {activeTab === "pending" && (
           <div className="space-y-6">
             <div className="glass-panel p-6 rounded-xl border border-yellow-500/20">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center text-base">⏳</div>
-                <h3 className="text-lg font-bold">حجوزات في انتظار تأكيد الدفع</h3>
-                <span className="mr-auto text-xs bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full font-bold">
-                  {pendingReservations.length} طلب
-                </span>
-                <button
-                  onClick={fetchPending}
-                  className="text-xs text-muted-foreground hover:text-white transition-colors px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10"
-                >🔄 تحديث</button>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center text-base shrink-0">⏳</div>
+                  <h3 className="text-base sm:text-lg font-bold leading-tight">حجوزات في انتظار تأكيد الدفع</h3>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-end sm:mr-auto">
+                  <span className="text-[10px] sm:text-xs bg-yellow-500/20 text-yellow-400 px-3 py-1.5 rounded-full font-bold whitespace-nowrap">
+                    {pendingReservations.length} طلب
+                  </span>
+                  <button
+                    onClick={fetchPending}
+                    className="text-[10px] sm:text-xs text-muted-foreground hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 whitespace-nowrap"
+                  >🔄 تحديث</button>
+                </div>
               </div>
 
               {pendingReservations.length === 0 ? (
-                <div className="text-center text-muted-foreground py-12 border border-dashed border-border rounded-xl">
+                <div className="text-center text-muted-foreground py-12 border border-dashed border-border rounded-xl text-sm">
                   لا توجد حجوزات في انتظار التأكيد حالياً ✅
                 </div>
               ) : (
@@ -552,50 +556,75 @@ export default function Dashboard() {
                       hours = ((new Date(res.endTime).getTime() - new Date(res.startTime).getTime()) / (1000 * 60 * 60)).toFixed(1);
                     }
                     return (
-                      <div key={res.id} className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-xl shrink-0">💳</div>
-                          <div>
-                            <p className="font-bold">{res.room?.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {res.customerName || "عميل غير مسجل"}
-                              {res.customerPhone && <span className="text-primary ml-2">📞 {res.customerPhone}</span>}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {res.isOpentime ? <span className="font-bold text-green-400">فترة مفتوحة (Open Time)</span> : `${hours} ساعة`}
-                              {res.transferToNumber && <span className="ml-2">· 💳 محول لـ: {res.transferToNumber.split(':')[0]}</span>}
-                              <span className="ml-2">· 🕒 {new Date(res.startTime).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}</span>
-                            </p>
+                      <div key={res.id} className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-yellow-500/10 to-transparent border border-yellow-500/20 flex flex-col gap-4 transition-all hover:border-yellow-500/40">
+                        {/* Header: Room Name & Price */}
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-xl shrink-0">💳</div>
+                            <div>
+                              <h4 className="font-bold text-sm sm:text-base text-white">{res.room?.name}</h4>
+                              <p className="text-[10px] sm:text-xs text-white/60 mt-0.5">👤 {res.customerName || "عميل غير مسجل"}</p>
+                            </div>
+                          </div>
+                          <div className="text-center bg-yellow-500/10 px-3 py-1.5 rounded-xl border border-yellow-500/20 shrink-0">
+                            <span className="block text-[9px] sm:text-[10px] text-yellow-500/70 mb-0.5">المبلغ المطلوب</span>
+                            <span className="text-lg sm:text-xl font-black text-yellow-400">{Math.ceil(res.totalPrice / 2)} <span className="text-[10px] font-normal">ج</span></span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-center">
-                            <p className="text-2xl font-extrabold text-yellow-400">{Math.ceil(res.totalPrice / 2)} جنيه</p>
-                            <p className="text-xs text-muted-foreground">المبلغ المطلوب</p>
+
+                        {/* Details Area */}
+                        <div className="bg-black/20 rounded-xl p-3 sm:p-4 border border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                          {res.customerPhone && (
+                            <div className="flex items-center gap-2 text-[11px] sm:text-xs text-white/70">
+                              <span className="w-4 text-center shrink-0">📞</span>
+                              <span className="truncate">{res.customerPhone}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-[11px] sm:text-xs text-white/70">
+                            <span className="w-4 text-center shrink-0">⏱️</span>
+                            <span className="truncate">{res.isOpentime ? <span className="font-bold text-green-400">وقت مفتوح</span> : `${hours} ساعة`}</span>
                           </div>
-                          <div className="flex gap-2">
-                            {res.transferImage && (
-                              <button
-                                onClick={() => setViewReceiptUrl(res.transferImage || null)}
-                                className="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 transition-colors text-sm font-bold"
-                              >🖼️ الإيصال</button>
-                            )}
-                            <button
-                              onClick={async () => {
-                                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/${res.id}/confirm-payment`, { method: "PATCH" });
-                                fetchPending();
-                              }}
-                              className="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/40 transition-colors text-sm font-bold"
-                            >✅ تأكيد الدفع</button>
-                            <button
-                              onClick={async () => {
-                                if (!confirm("هل تريد رفض هذا الحجز؟")) return;
-                                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/${res.id}/reject-payment`, { method: "PATCH" });
-                                fetchPending();
-                              }}
-                              className="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/40 transition-colors text-sm font-bold"
-                            >❌ رفض</button>
+                          <div className="flex items-center gap-2 text-[11px] sm:text-xs text-white/70">
+                            <span className="w-4 text-center shrink-0">🕒</span>
+                            <span className="truncate">يبدأ {new Date(res.startTime).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}</span>
                           </div>
+                          {res.transferToNumber && (
+                            <div className="flex items-center gap-2 text-[11px] sm:text-xs text-white/70">
+                              <span className="w-4 text-center shrink-0">🏦</span>
+                              <span className="truncate">محول لـ: <span className="font-bold text-white/90">{res.transferToNumber.split(':')[0]}</span></span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 pt-1">
+                          {res.transferImage && (
+                            <button
+                              onClick={() => setViewReceiptUrl(res.transferImage || null)}
+                              className="col-span-2 sm:col-span-1 sm:flex-1 py-2.5 px-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5"
+                            >
+                              🖼️ عرض الإيصال
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/${res.id}/confirm-payment`, { method: "PATCH" });
+                              fetchPending();
+                            }}
+                            className="py-2.5 px-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-colors text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:flex-1"
+                          >
+                            ✅ تأكيد
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!confirm("هل تريد رفض هذا الحجز؟")) return;
+                              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/${res.id}/reject-payment`, { method: "PATCH" });
+                              fetchPending();
+                            }}
+                            className="py-2.5 px-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:flex-1"
+                          >
+                            ❌ رفض
+                          </button>
                         </div>
                       </div>
                     );
