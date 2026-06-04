@@ -8,6 +8,7 @@ interface Reservation {
   isOpentime?: boolean;
   startTime?: string;
   endTime?: string;
+  createdAt?: string;
 }
 
 interface Room {
@@ -190,11 +191,14 @@ export default function RoomsPage() {
         if (newStart < resEnd && checkNewEnd > resStart) {
           if (reservationForm.isOpentime) {
             const formatTime = (d: Date) => {
+              const day = d.getDate();
+              const month = d.getMonth() + 1;
+              const year = d.getFullYear();
               let h = d.getHours();
               const m = d.getMinutes();
               const ampm = h >= 12 ? 'م' : 'ص';
               h = h % 12 || 12;
-              return `${h}:${m < 10 ? '0' + m : m} ${ampm}`;
+              return `${day}/${month}/${year} ${h}:${m < 10 ? '0' + m : m} ${ampm}`;
             };
             alert(`❌ لا يمكن اختيار "وقت مفتوح" لأن هناك حجز قادم لهذه الغرفة يبدأ الساعة ${formatTime(resStart)}. يرجى إزالة علامة الصح من الوقت المفتوح وتحديد وقت انتهاء قبل هذا الموعد.`);
           } else {
@@ -278,7 +282,11 @@ export default function RoomsPage() {
               {viewingRoom.reservations && viewingRoom.reservations.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   {viewingRoom.reservations.map(res => {
-                    const formatTime = (dStr: string) => {
+                    const formatDate = (dStr: string) => {
+                      const d = new Date(dStr);
+                      return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+                    };
+                    const formatTimeOnly = (dStr: string) => {
                       const d = new Date(dStr);
                       let h = d.getHours();
                       const m = d.getMinutes();
@@ -286,20 +294,47 @@ export default function RoomsPage() {
                       h = h % 12 || 12;
                       return `${h}:${m < 10 ? '0' + m : m} ${ampm}`;
                     };
+
                     return (
-                      <div key={res.id} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-1">
-                        <div className="flex justify-between items-center">
+                      <div key={res.id} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
+                        <div className="flex flex-col gap-1.5">
                           {res.isOpentime ? (
-                            <span className="text-sm text-white font-bold text-red-400">
-                              ⏳ وقت مفتوح <span className="text-white/60 font-normal text-xs">(يبدأ <span className="text-red-300">{res.startTime && formatTime(res.startTime)}</span>)</span>
-                            </span>
+                            <>
+                              <span className="text-sm text-white font-bold text-red-400">
+                                ⏳ وقت مفتوح <span className="text-white/60 font-normal text-xs">(يبدأ <span className="text-red-300">{res.startTime && formatTimeOnly(res.startTime)}</span>)</span>
+                              </span>
+                              {res.startTime && (
+                                <span className="text-xs text-white/50 flex flex-wrap items-center gap-1 mt-0.5">
+                                  📅 بتاريخ: <span className="text-white/70">{formatDate(res.startTime)}</span>
+                                  {res.createdAt && (
+                                    <>
+                                      <span className="text-white/20 mx-1">|</span>
+                                      <span>🕛 وقت تسجيل الحجز: <span className="text-white/70">{formatTimeOnly(res.createdAt)}</span></span>
+                                    </>
+                                  )}
+                                </span>
+                              )}
+                            </>
                           ) : (
-                            <span className="text-sm text-white font-bold">
-                              من <span className="text-red-300">{res.startTime && formatTime(res.startTime)}</span> إلى <span className="text-red-300">{res.endTime && formatTime(res.endTime)}</span>
-                            </span>
+                            <>
+                              <span className="text-sm text-white font-bold">
+                                🕒 من <span className="text-red-300">{res.startTime && formatTimeOnly(res.startTime)}</span> إلى <span className="text-red-300">{res.endTime && formatTimeOnly(res.endTime)}</span>
+                              </span>
+                              {res.startTime && res.endTime && (
+                                <span className="text-xs text-white/50 flex flex-wrap items-center gap-1 mt-0.5">
+                                  📅 بتاريخ: <span className="text-white/70">{formatDate(res.startTime)}</span> {formatDate(res.startTime) !== formatDate(res.endTime) && <span className="text-white/70"> - {formatDate(res.endTime)}</span>}
+                                  {res.createdAt && (
+                                    <>
+                                      <span className="text-white/20 mx-1">|</span>
+                                      <span>🕛 وقت تسجيل الحجز: <span className="text-white/70">{formatTimeOnly(res.createdAt)}</span></span>
+                                    </>
+                                  )}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
-                        <p className="text-xs text-white/40">حالة الحجز: {res.status === 'pending_payment' ? 'بانتظار الدفع' : 'مؤكد'}</p>
+                        <p className="text-xs text-white/40 border-t border-white/5 pt-2">حالة الحجز: {res.status === 'pending_payment' ? 'بانتظار الدفع' : 'مؤكد'}</p>
                       </div>
                     );
                   })}

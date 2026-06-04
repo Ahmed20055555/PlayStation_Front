@@ -17,6 +17,7 @@ interface Room {
   discountRate?: number;
   discountStart?: number;
   discountEnd?: number;
+  reservations?: PendingReservation[];
 }
 
 interface PendingReservation {
@@ -44,7 +45,7 @@ interface Activity {
 }
 
 const tabs = [
-  { id: "add-room", label: "إضافة غرفة", icon: "🎮" },
+  { id: "add-room", label: "إدارة الغرف", icon: "🎮" },
   { id: "pending", label: "انتظار تأكيد", icon: "⏳" },
   { id: "overview", label: "نظرة عامة", icon: "📊" },
   { id: "settings", label: "الإعدادات", icon: "⚙️" },
@@ -105,9 +106,21 @@ export default function Dashboard() {
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [viewingRoomReservations, setViewingRoomReservations] = useState<Room | null>(null);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [pendingReservations, setPendingReservations] = useState<PendingReservation[]>([]);
+  const [activeReservations, setActiveReservations] = useState<PendingReservation[]>([]);
   const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
+
+  const fetchActive = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/active`);
+      const data = await res.json();
+      setActiveReservations(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("Failed to fetch active:", e);
+    }
+  };
 
   const fetchPending = async () => {
     try {
@@ -126,6 +139,10 @@ export default function Dashboard() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/rooms`);
       const data = await res.json();
       setRooms(Array.isArray(data) ? data : []);
+      if (viewingRoomReservations) {
+        const updatedRoom = data.find((r: Room) => r.id === viewingRoomReservations.id);
+        if (updatedRoom) setViewingRoomReservations(updatedRoom);
+      }
     } catch (error) {
       console.error("Failed to fetch rooms:", error);
       setRooms([]);
@@ -152,10 +169,12 @@ export default function Dashboard() {
   useEffect(() => {
     fetchRooms();
     fetchPending();
+    fetchActive();
     fetchOverview();
 
     const pendingTimer = setInterval(() => {
       fetchPending();
+      fetchActive();
       fetchOverview();
     }, 3000);
 
@@ -493,27 +512,56 @@ export default function Dashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {rooms.map(room => (
-                    <div key={room.id} className="flex items-center justify-between p-3 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/40 transition-colors group">
-                      <div className="flex items-center gap-2 md:gap-3">
-                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-md md:rounded-lg flex items-center justify-center text-[10px] md:text-xs font-bold shrink-0 ${room.consoleType === 'PS5' ? 'bg-primary/20 text-primary' : 'bg-blue-500/20 text-blue-400'}`}>
-                          {room.consoleType}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-xs md:text-sm">{room.name}</p>
-                          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-0">{room.hourlyRate} جنيه / ساعة</p>
+                    <div key={room.id} className="relative overflow-hidden flex flex-col p-4 md:p-5 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-blue-500/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all duration-300 group">
+                      
+                      {/* Header: Room Name & Console Badge */}
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-black shadow-lg ${room.consoleType === 'PS5' ? 'bg-gradient-to-br from-gray-200 to-gray-400 text-black' : 'bg-gradient-to-br from-blue-600 to-blue-800 text-white'}`}>
+                            {room.consoleType}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-base md:text-lg text-white transition-colors">{room.name}</h4>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="text-[10px] md:text-xs text-white/60 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                                {room.hourlyRate} جنيه / ساعة
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex gap-1.5 md:gap-2">
+
+                      {/* Actions */}
+                      <div className="flex flex-col md:flex-row gap-2 mt-auto pt-4 border-t border-white/5">
+                        
+                        {/* Edit & Delete (Top on Mobile, Right on Desktop) */}
+                        <div className="flex gap-2 order-1 md:order-2 w-full md:w-auto">
+                          <button
+                            onClick={() => setEditingRoom(room)}
+                            className="flex-1 md:w-11 h-10 md:h-11 flex items-center justify-center rounded-xl bg-[#2a2a2a] text-white/70 hover:bg-[#333] border border-white/5 transition-all text-sm"
+                            title="تعديل"
+                          >
+                            ✏️
+                          </button>
+                          
+                          <button
+                            onClick={() => deleteRoom(room.id)}
+                            className="flex-1 md:w-11 h-10 md:h-11 flex items-center justify-center rounded-xl bg-[#4a2525] text-red-400 hover:bg-[#5c2d2d] border border-red-500/20 transition-all text-sm"
+                            title="حذف"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+
+                        {/* Reservations Button (Bottom on Mobile, Left on Desktop) */}
                         <button
-                          onClick={() => setEditingRoom(room)}
-                          className="p-1 md:p-1.5 rounded-lg bg-secondary/20 text-secondary hover:bg-secondary/40 transition-colors text-[10px] md:text-xs"
-                          title="تعديل"
-                        >✏️</button>
-                        <button
-                          onClick={() => deleteRoom(room.id)}
-                          className="p-1 md:p-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/40 transition-colors text-[10px] md:text-xs"
-                          title="حذف"
-                        >🗑️</button>
+                          onClick={() => setViewingRoomReservations(room)}
+                          className="flex-1 flex items-center justify-center gap-1.5 md:gap-2 h-10 md:h-11 rounded-full bg-[#1e3b28] text-[#4ade80] hover:bg-[#254a32] border border-green-500/20 transition-all font-bold order-2 md:order-1 px-3"
+                        >
+                          <span className="text-base md:text-lg">👁️</span>
+                          <span className="text-[10px] md:text-xs">الحجوزات ({room.reservations?.length || 0})</span>
+                        </button>
+
                       </div>
                     </div>
                   ))}
@@ -735,6 +783,75 @@ export default function Dashboard() {
                   <button type="button" onClick={() => setEditingRoom(null)} className="btn-secondary flex-1">إلغاء</button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal حجوزات الغرفة */}
+        {viewingRoomReservations && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in" onClick={() => setViewingRoomReservations(null)}>
+            <div className="bg-[#0a0a0a] border border-white/5 p-5 md:p-6 rounded-[24px] shadow-2xl max-w-[320px] w-full max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-start mb-6">
+                <button onClick={() => setViewingRoomReservations(null)} className="w-8 h-8 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all mt-1">✕</button>
+                <div className="text-left">
+                  <h3 className="text-lg md:text-xl font-bold text-white leading-tight">إدارة حجوزات:</h3>
+                  <h3 className="text-xl md:text-2xl font-black text-white">{viewingRoomReservations.name}</h3>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                {!viewingRoomReservations.reservations || viewingRoomReservations.reservations.length === 0 ? (
+                  <p className="text-center text-white/40 py-8 text-sm">لا توجد حجوزات نشطة أو قيد الانتظار.</p>
+                ) : (
+                  viewingRoomReservations.reservations.map(res => (
+                    <div key={res.id} className="bg-[#141414] border border-white/5 rounded-[20px] p-4 flex flex-col">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex flex-col items-start">
+                           <p className="font-bold text-sm md:text-base text-white">{res.customerName || "بدون اسم"}</p>
+                           {res.customerPhone && <p className="text-[10px] text-white/50">({res.customerPhone})</p>}
+                           <p className="text-[10px] text-white/70 mt-1.5 flex items-center gap-1.5">
+                             <span>{res.isOpentime ? "⏳" : "🕒"}</span>
+                             <span>{res.isOpentime ? "وقت مفتوح" : `من ${new Date(res.startTime).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}`}</span>
+                           </p>
+                        </div>
+                        <div className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center text-center leading-[1.2] min-w-[60px] ${res.status === 'active' ? 'bg-[#1e3b28] text-[#4ade80]' : 'bg-[#4a3b1c] text-[#fbbf24]'}`}>
+                          <span>{res.status === 'active' ? 'نشط' : 'قيد'}</span>
+                          <span>{res.status === 'active' ? '(يلعب)' : 'الانتظار'}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-1 pt-3 border-t border-white/5">
+                        <button
+                          onClick={async () => {
+                            let confirmMessage = "هل متأكد من إنهاء الجلسة؟";
+                            if (res.isOpentime && res.startTime) {
+                              const start = new Date(res.startTime);
+                              const now = new Date();
+                              const diffMs = now.getTime() - start.getTime();
+                              const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                              const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                              confirmMessage = `العميل لعب لمدة ${hours} ساعة و ${minutes} دقيقة.\nهل أنت متأكد من إنهاء الجلسة؟`;
+                            }
+                            
+                            if (!confirm(confirmMessage)) return;
+                            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/${res.id}/status`, { 
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ status: "completed" })
+                            });
+                            fetchRooms();
+                            fetchPending();
+                          }}
+                          className="w-full py-2.5 rounded-xl bg-[#4a2525] text-[#f87171] hover:bg-[#5c2d2d] transition-colors text-xs md:text-sm font-bold flex items-center justify-center gap-2"
+                        >
+                          <span className="text-[10px] md:text-xs">🛑</span>
+                          <span>إنهاء الجلسة</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}
