@@ -30,6 +30,7 @@ interface PendingReservation {
   endTime: string | null;
   totalPrice: number;
   transferImage?: string;
+  status?: string;
   room: { name: string; consoleType: string };
 }
 
@@ -606,7 +607,7 @@ export default function Dashboard() {
                     return (
                       <div key={res.id} className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-yellow-500/10 to-transparent border border-yellow-500/20 flex flex-col gap-4 transition-all hover:border-yellow-500/40">
                         {/* Header: Room Name & Price */}
-                        <div className="flex justify-between items-start gap-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-xl shrink-0">💳</div>
                             <div>
@@ -614,9 +615,11 @@ export default function Dashboard() {
                               <p className="text-[10px] sm:text-xs text-white/60 mt-0.5">👤 {res.customerName || "عميل غير مسجل"}</p>
                             </div>
                           </div>
-                          <div className="text-center bg-yellow-500/10 px-3 py-1.5 rounded-xl border border-yellow-500/20 shrink-0">
-                            <span className="block text-[9px] sm:text-[10px] text-yellow-500/70 mb-0.5">المبلغ المطلوب</span>
-                            <span className="text-lg sm:text-xl font-black text-yellow-400">{Math.ceil(res.totalPrice / 2)} <span className="text-[10px] font-normal">ج</span></span>
+                          <div className="flex flex-1 sm:flex-none items-center justify-between sm:justify-start gap-2 bg-yellow-500/10 px-4 py-2 rounded-xl border border-yellow-500/20 shrink-0">
+                            <span className="text-[11px] sm:text-xs text-yellow-500/70 font-medium">المبلغ المطلوب:</span>
+                            <div className="text-left" dir="ltr">
+                              <span className="text-base sm:text-lg font-black text-yellow-400">{Math.ceil(res.totalPrice / 2)} <span className="text-[10px] font-normal">ج</span></span>
+                            </div>
                           </div>
                         </div>
 
