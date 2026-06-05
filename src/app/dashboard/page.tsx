@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import SettingsPage from "../settings/page";
+import EmployeesTab from "./EmployeesTab";
+import AnnouncementsTab from "./AnnouncementsTab";
+import AttendanceTab from "./AttendanceTab";
+import BreakRequestsTab from "./BreakRequestsTab";
 
 interface AnalyticsData {
   monthlyRevenue: number;
@@ -49,6 +53,10 @@ const tabs = [
   { id: "add-room", label: "إدارة الغرف", icon: "🎮" },
   { id: "pending", label: "انتظار تأكيد", icon: "⏳" },
   { id: "overview", label: "نظرة عامة", icon: "📊" },
+  { id: "employees", label: "الموظفين", icon: "👥" },
+  { id: "announcements", label: "الإعلانات", icon: "📢" },
+  { id: "attendance", label: "الحضور", icon: "🕒" },
+  { id: "break-requests", label: "الأذونات", icon: "☕" },
   { id: "settings", label: "الإعدادات", icon: "⚙️" },
 ];
 
@@ -863,14 +871,19 @@ export default function Dashboard() {
         {activeTab === "overview" && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel p-4 md:p-6 rounded-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">الإيراد الشهري</h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl md:text-4xl font-extrabold text-white">{data?.monthlyRevenue.toLocaleString()} جنيه</span>
-                  <span className="text-sm text-green-400 font-medium">+12.5%</span>
+              <div className="bg-[#0f0f0f] p-5 md:p-6 rounded-2xl border border-white/5 relative overflow-hidden flex flex-col items-end">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                <h3 className="text-sm md:text-base font-medium text-white/60 mb-2 z-10">الإيراد الشهري</h3>
+                
+                <div className="flex justify-between items-center w-full z-10" dir="ltr">
+                  <span className="text-sm text-green-500 font-bold tracking-wider mt-2">12.5%+</span>
+                  <div className="flex items-baseline gap-2" dir="rtl">
+                    <span className="text-4xl md:text-5xl font-black text-white tracking-tight">{data?.monthlyRevenue.toLocaleString() || "0"}</span>
+                    <span className="text-xl md:text-2xl font-bold text-white">جنيه</span>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mt-4">مقارنة بالشهر الماضي</p>
+
+                <p className="text-[10px] md:text-xs text-white/40 mt-3 z-10">مقارنة بالشهر الماضي</p>
               </div>
               <div className="glass-panel p-4 md:p-6 rounded-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500"></div>
@@ -936,6 +949,18 @@ export default function Dashboard() {
             <SettingsPage />
           </div>
         )}
+
+        {/* الموظفين */}
+        {activeTab === "employees" && <EmployeesTab />}
+
+        {/* الإعلانات */}
+        {activeTab === "announcements" && <AnnouncementsTab />}
+
+        {/* الحضور */}
+        {activeTab === "attendance" && <AttendanceTab />}
+
+        {/* الأذونات والبريك */}
+        {activeTab === "break-requests" && <BreakRequestsTab />}
       </main>
     </div>
   );
